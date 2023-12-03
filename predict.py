@@ -6,11 +6,15 @@ import time
 class RecommenderSystem:
     MISSING_RATING = 0.0
     DEFAULT_NEIGHBOURHOOD_SIZE = 5
-    DEFAULT_NEIGHBOURHOOD_THRESHOLD = 0.5
+    DEFAULT_SIMILARITY_THRESHOLD = 0.5
+    ITEM_BASED_ALGORITHM = 0
+    USER_BASED_ALGORITHM = 1
+    TOP_K_NEIGHBOURS = 0
+    SIMILARITY_THRESHOLD = 1
     MIN_RATING = 1.0
     MAX_RATING = 5.0
 
-    def __init__(self, path, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, neighbourhood_threshold=DEFAULT_NEIGHBOURHOOD_THRESHOLD):
+    def __init__(self, path, algorithm, parameter, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD):
         """
         Initialize the RecommenderSystem object.
 
@@ -23,8 +27,10 @@ class RecommenderSystem:
         None
         """
         self.path = path
+        self.algorithm = algorithm
+        self.parameter = parameter
         self.neighbourhood_size = neighbourhood_size
-        self.neighbourhood_threshold = neighbourhood_threshold
+        self.similarity_threshold = similarity_threshold
         self.num_users, self.num_items, self.users, self.items, self.ratings = self.read_data()
 
     def read_data(self):
@@ -163,6 +169,58 @@ class RecommenderSystem:
                 similarities[j, itemIndex] = similarity
 
         return similarities
+    
+    def predict_ratings(self, similarities):
+        #currently just here from lab#6
+        """
+        Predicts the ratings for items that a user has not rated yet, using collaborative filtering.
+
+        Parameters:
+        - similarities (numpy.array): Matrix of precomputed similarities.
+
+        Returns:
+        - predicted_ratings (list): List of predicted ratings for each user.
+        """
+        
+        predicted_ratings = []
+
+        for i in range(self.num_users):
+            current_user_ratings = self.ratings[i]
+            current_user_predicted_ratings = np.full(self.num_items, self.MISSING_RATING, dtype=float)
+
+            for j in range(self.num_items):
+                if current_user_ratings[j] == self.MISSING_RATING:
+                    neighbours = []
+
+                    for k in range(self.num_users):
+                        if i != k and self.ratings[k, j] != self.MISSING_RATING:
+                            neighbours.append((k, similarities[i, k]))
+
+                    neighbours.sort(key=lambda x: x[1], reverse=True)
+                    top_neighbours = neighbours[:self.neighbourhood_size]
+                    # TODO: Could also use a threshold for similarity
+                    sum_ratings = 0
+                    total_similarity = 0
+
+                    for neighbour_index, similarity in top_neighbours:
+                        neighbour_rating = self.ratings[neighbour_index, j]
+                        # Calculate the deviation from the average
+                        filtered_ratings = [x for x in self.ratings[neighbour_index] if x != self.MISSING_RATING]
+                        deviation = neighbour_rating - np.mean(filtered_ratings)
+                        # Accumulate the weighted sum of deviations
+                        sum_ratings += similarity * deviation
+                        total_similarity += similarity
+
+                    # Calculate predicted rating
+                    user_average = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
+                    influence = sum_ratings / total_similarity
+                    predicted_rating = user_average + influence
+                    # Ensure rating is between 0 and 5
+                    current_user_predicted_ratings[j] = max(0, min(5, predicted_rating))
+
+            predicted_ratings.append(current_user_predicted_ratings)
+
+        return predicted_ratings
 
     def predict_rating(self, userIndex, itemIndex, similarities):
         #TODO: choose top neighbours based on threshold instead
@@ -215,6 +273,76 @@ class RecommenderSystem:
             # print(f"Final predicted value: {predict_rating}")
 
         return predict_rating, total_similarity, adjusted_neighbourhood_size
+
+    def find_user_mae(self):
+        #TODO: this is just a copy of the item version. Make this for users
+        """
+        Find the Mean Absolute Error (MAE) for the prediction model.
+
+        Returns:
+        float: Mean Absolute Error (MAE) for the prediction model.
+        """
+        
+        try:
+            start_time = time.time()
+            test_set_size = 0
+            numerator = 0
+
+            under_predictions = 0
+            over_predictions = 0
+            no_valid_neighbours = 0
+            total_neighbours_used = 0
+
+            for i in range(self.num_users):
+                for j in range(self.num_items):
+                    if not np.isnan(self.ratings[i, j]) and not self.ratings[i, j] == self.MISSING_RATING:
+                        test_set_size += 1
+                        temp = self.ratings[i, j]
+                        self.ratings[i, j] = self.MISSING_RATING
+
+                        similarities = self.precompute_item_similarities(j)
+
+                        # predict the rating for each user-item pair
+                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
+
+                        if not np.isnan(predicted_rating):
+                            error = abs(predicted_rating - temp)
+                            numerator += error
+
+                            if error < self.MIN_RATING:
+                                under_predictions += 1
+                            elif error > self.MAX_RATING:
+                                over_predictions += 1
+
+                        if np.isnan(predicted_rating) or np.isinf(predicted_rating) or total_similarity == 0:
+                            no_valid_neighbours += 1
+                        else:
+                            total_neighbours_used += adjusted_neighbourhood_size
+
+                        self.ratings[i, j] = temp
+
+            mae = numerator / test_set_size
+            # print(f"Numerator = {numerator}")
+            # print(f"test_set_size = {test_set_size}")
+            # print(f"Total predictions: {test_set_size}")
+            # print(f"Total under predictions (< {1}): {under_predictions}")
+            # print(f"Total over predictions (> {5}): {over_predictions}")
+            # print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
+            # print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
+            print(f"MAE: {mae}")
+
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= 60:
+                minutes, seconds = divmod(elapsed_time, 60)
+                print(f"Start: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+            else:
+                print(f"Start: {elapsed_time:.3f}s")
+
+            return mae
+        except Exception as err:
+            print(f"Error: {str(err)}")
+            return None
+
 
     def find_item_mae(self):
         """
@@ -289,15 +417,31 @@ def main():
     input_directory = "./input"
     files = [f for f in os.listdir(input_directory) if os.path.isfile(os.path.join(input_directory, f))]
 
-    print("Select a file to process:")
-    for index, file in enumerate(files):
-        print(f"{index + 1}. {file}")
-
     try:
+        print("Select a file to process:")
+        for index, file in enumerate(files):
+            print(f"{index + 1}. {file}")
         selected_index = int(input("File to process: ")) - 1
         selected_file = os.path.join(input_directory, files[selected_index])
-        recommender_system = RecommenderSystem(selected_file)
-        recommender_system.find_item_mae()
+
+        print("\nAlgorithm - item or user?:")
+        print("1. item")
+        print("2. user")
+        selected_index = int(input("Algorithm: ")) - 1
+        selected_algorithm = selected_index
+
+        print("\nParameter - top k neighbours or similarity threshold?:")
+        print("1. top k neighbours")
+        print("2. similarity threshold")
+        selected_index = int(input("Parameter: ")) - 1
+        selected_parameter = selected_index
+        
+        recommender_system = RecommenderSystem(selected_file, selected_algorithm, selected_parameter)
+        if recommender_system.algorithm == recommender_system.ITEM_BASED_ALGORITHM:
+            recommender_system.find_item_mae()
+        else:
+            #TODO: replace with user algorithm
+            recommender_system.find_item_mae()
     except ValueError:
         print("Invalid input. Please enter a valid integer.")
         return
