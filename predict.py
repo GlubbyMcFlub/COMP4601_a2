@@ -425,14 +425,14 @@ def main():
         selected_file = os.path.join(input_directory, files[selected_index])
 
         print("\nAlgorithm - item or user?:")
-        print("1. item")
-        print("2. user")
+        print("1. item") # implemented
+        print("2. user") # TODO: implement (changing the algorithm will change the similarity function) -> lab 06 extension, optimize MAE?
         selected_index = int(input("Algorithm: ")) - 1
         selected_algorithm = selected_index
 
         print("\nParameter - top k neighbours or similarity threshold?:")
-        print("1. top k neighbours")
-        print("2. similarity threshold")
+        print("1. top k neighbours") # implemented
+        print("2. similarity threshold") # TODO: implement -> experiment w/ values, neighbourhood size
         selected_index = int(input("Parameter: ")) - 1
         selected_parameter = selected_index
         
@@ -442,6 +442,16 @@ def main():
         else:
             #TODO: replace with user algorithm
             recommender_system.find_item_mae()
+            
+        '''
+        TODO:
+            - optimize item-based (Eric to start working on this)
+            - implement user based algorithm (David to work on this tomorrow) -> (Eric to start optimizing this tomorrow evening)
+            - similarity threshold (David to work on this tomorrow) -> (Eric to start optimizing this tomorrow evening)
+            - negative correlations (top-k based on ABS of correlation) -> create option during main (David to start working on this)
+            - experiment w/ neighbourhood size, threshold, top-k, user/item based permutations.
+            - near the end, implement some sort of test suite (David to start working on this)
+        '''
     except ValueError:
         print("Invalid input. Please enter a valid integer.")
         return
