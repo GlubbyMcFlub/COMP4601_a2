@@ -24,7 +24,7 @@ class TestRecommenderSystem(unittest.TestCase):
             include_negative_correlations=include_negative_correlations
         )
 
-        self.assertIsNotNone(recommender_system.run())
+        return self.assertIsNotNone(recommender_system.run())
 
     def test_all_files(self):
         '''
@@ -51,8 +51,8 @@ class TestRecommenderSystem(unittest.TestCase):
                                     for include_negative_correlations in include_negative_correlations_values:
                                         results_file.write(f"File: {file}\n")
                                         results_file.write(f"Algorithm: {algorithm}, Parameter: {parameter}, Neighbourhood Size: {neighbourhood_size}, Similarity Threshold: {similarity_threshold}, Include Negative Correlations: {include_negative_correlations}\n")
-                                        self.run_test_for_file(file_path, algorithm, parameter, neighbourhood_size, similarity_threshold, include_negative_correlations)
-                                        results_file.write(f"Test Result: Passed\n\n")
+                                        res = self.run_test_for_file(file_path, algorithm, parameter, neighbourhood_size, similarity_threshold, include_negative_correlations)w
+                                        results_file.write(f"Test Result: {'Passed' if res == True else 'Failed'}\n\n")
 
 
 if __name__ == '__main__':
