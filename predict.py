@@ -4,6 +4,9 @@ import numpy as np
 import time
 
 class RecommenderSystem:
+    '''
+    RecommenderSystem class for COMP4601 Assignment 2.
+    '''
     MISSING_RATING = 0.0
     DEFAULT_NEIGHBOURHOOD_SIZE = 5
     DEFAULT_SIMILARITY_THRESHOLD = 0.5
@@ -14,7 +17,7 @@ class RecommenderSystem:
     MIN_RATING = 1.0
     MAX_RATING = 5.0
 
-    def __init__(self, path, algorithm, parameter, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD):
+    def __init__(self, path, algorithm, parameter, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, include_negative_correlations=False):
         """
         Initialize the RecommenderSystem object.
 
@@ -22,6 +25,7 @@ class RecommenderSystem:
         - path (str): Path to the input data file.
         - neighbourhood_size (int): Size of the neighbourhood for recommendation.
         - neighbourhood_threshold (float): Threshold for including user/item in neighbourhood.
+        - include_negative_correlations (bool): Whether to include negative correlations in recommendations.
 
         Returns:
         None
@@ -31,6 +35,7 @@ class RecommenderSystem:
         self.parameter = parameter
         self.neighbourhood_size = neighbourhood_size
         self.similarity_threshold = similarity_threshold
+        self.include_negative_correlations = include_negative_correlations
         self.num_users, self.num_items, self.users, self.items, self.ratings = self.read_data()
 
     def read_data(self):
@@ -53,10 +58,12 @@ class RecommenderSystem:
                 ratings = np.array([[float(rating) if rating != self.MISSING_RATING else self.MISSING_RATING for rating in line.split()] for line in file])
                 return num_users, num_items, users, items, ratings
         except ValueError as err:
-            raise ValueError(f"Error: {str(err)}")
-        except Exception as err:
+            raise ValueError(f"Error: {str(err)}") from err
+        except FileNotFoundError as err:
             print(f"Error: {str(err)}")
             return None, None, None, None, None
+
+
     def compute_user_similarity(self, user1_ratings, user2_ratings, common_items):
         """
         Computes the Pearson correlation coefficient (PCC) between two users based on their common item ratings.
@@ -411,6 +418,25 @@ class RecommenderSystem:
         except Exception as err:
             print(f"Error: {str(err)}")
             return None
+        
+    def run(self):
+        '''
+        Run the recommender system.
+        
+        Returns:
+        None
+        '''
+        # Placeholder
+        print("Running the recommender system...")
+        print(f"Algorithm: {'Item-Based' if self.algorithm == self.ITEM_BASED_ALGORITHM else 'User-Based'}")
+        print(f"Parameter: {'Top-K Neighbours' if self.parameter == self.TOP_K_NEIGHBOURS else 'Similarity Threshold'}")
+        print(f"Neighbourhood Size: {self.neighbourhood_size}")
+        print(f"Similarity Threshold: {self.similarity_threshold}")
+        print(f"Include Negative Correlations: {self.include_negative_correlations}")
+
+        result = self.find_item_mae() if self.algorithm == self.ITEM_BASED_ALGORITHM else self.find_user_mae()
+
+        return result
 
 def main():
     #TODO: add parameter options for item/user and top k neighbours/threshold
