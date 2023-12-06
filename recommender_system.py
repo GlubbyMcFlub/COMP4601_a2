@@ -17,7 +17,7 @@ class RecommenderSystem:
     MIN_RATING = 1.0
     MAX_RATING = 5.0
 
-    def __init__(self, path, algorithm, parameter, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, include_negative_correlations=False):
+    def __init__(self, path, algorithm, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, include_negative_correlations=False, filter_type=TOP_K_NEIGHBOURS):
         """
         Initialize the RecommenderSystem object.
 
@@ -32,10 +32,10 @@ class RecommenderSystem:
         """
         self.path = path
         self.algorithm = algorithm
-        self.parameter = parameter
         self.neighbourhood_size = neighbourhood_size
         self.similarity_threshold = similarity_threshold
         self.include_negative_correlations = include_negative_correlations
+        self.filter_type = filter_type
         self.num_users, self.num_items, self.users, self.items, self.ratings = self.read_data()
 
     def read_data(self):
@@ -277,17 +277,32 @@ class RecommenderSystem:
 
                 total_similarity = 0
             else:
-
-                #create array of tuples using neighbours indices and similarities 
-                neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[itemIndex])]
+                #create array of tuples using neighbours indices and similarities
+                # TODO: VERIFY THAT THIS IS CORRECT!!!!!!!!!!!!!!!!!
+                if (self.include_negative_correlations or self.filter_type == self.TOP_K_NEIGHBOURS):
+                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[itemIndex]))]
+                else:
+                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[itemIndex])]
 
                 #sort array based on similarities in descending order for neighbourhood similarities
-                sorted_indices = [index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array]
+                sorted_indices = np.array([index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
+                
+                # Filtering technique
+                if (self.filter_type == self.SIMILARITY_THRESHOLD):
+                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold]
+                elif (self.filter_type == self.TOP_K_NEIGHBOURS):
+                    filtered_indices = sorted_indices[:adjusted_neighbourhood_size]
+                else:
+                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold][:adjusted_neighbourhood_size]
+                    
+                #print(f"Filtered indices: {filtered_indices}")
 
-                top_neighbours_indices = sorted_indices[:adjusted_neighbourhood_size]
-
-                sum_ratings = np.sum(similarities[itemIndex, top_neighbours_indices] * self.ratings[userIndex, top_neighbours_indices])
-                total_similarity = np.sum(similarities[itemIndex, top_neighbours_indices])
+                sum_ratings = np.sum(similarities[itemIndex, filtered_indices] * self.ratings[userIndex, filtered_indices])
+                if (self.include_negative_correlations):
+                    total_similarity = np.sum(abs(similarities[itemIndex, filtered_indices]))
+                else:
+                    total_similarity = np.sum(similarities[itemIndex, filtered_indices])
+                
 
                 predict_rating = max(0, min(5, sum_ratings / total_similarity)) if total_similarity != 0 else np.nanmean(self.ratings[userIndex])
 
@@ -386,7 +401,7 @@ class RecommenderSystem:
 
                         # predict the rating for each user-item pair
                         predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
-                        print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
+                        #print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
 
                         if not np.isnan(predicted_rating):
                             error = abs(predicted_rating - temp)
@@ -518,7 +533,7 @@ class RecommenderSystem:
         '''
         print("Running the recommender system...")
         print(f"Algorithm: {'Item-Based' if self.algorithm == self.ITEM_BASED_ALGORITHM else 'User-Based'}")
-        print(f"Parameter: {'Top-K Neighbours' if self.parameter == self.TOP_K_NEIGHBOURS else 'Similarity Threshold'}")
+        print(f"Filter Type: {'Top-K Neighbours' if self.filter_type == self.TOP_K_NEIGHBOURS else 'Similarity Threshold'}")
         print(f"Neighbourhood Size: {self.neighbourhood_size}")
         print(f"Similarity Threshold: {self.similarity_threshold}")
         print(f"Include Negative Correlations: {self.include_negative_correlations}")
