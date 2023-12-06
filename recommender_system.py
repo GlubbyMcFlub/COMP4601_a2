@@ -99,10 +99,7 @@ class RecommenderSystem:
 
         correlation = numerator / (denominator_user1 * denominator_user2)
 
-        if self.include_negative_correlations:
-            return correlation
-        else:
-            return max(0, correlation)
+        return correlation
 
     def compute_item_similarity(self, item1_index, item2_index, common_users, average_ratings):
         """
@@ -246,6 +243,7 @@ class RecommenderSystem:
             predicted_ratings.append(current_user_predicted_ratings)
 
         return predicted_ratings
+    
     def predict_user_rating(self, user_index, item_index, similarities):
         """
         Predict a single rating for a user-item pair user algorithm
@@ -273,7 +271,7 @@ class RecommenderSystem:
                 total_similarity = 0
             else:
                 # Create array of tuples using neighbours indices and similarities
-                if (self.include_negative_correlations or self.filter_type == self.TOP_K_NEIGHBOURS):
+                if (self.include_negative_correlations):
                     neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[user_index, :]))]
                 else:
                     neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[user_index, :])]
