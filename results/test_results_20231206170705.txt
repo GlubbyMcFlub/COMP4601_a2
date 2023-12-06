@@ -1,0 +1,4 @@
+File: test.txt
+Algorithm: USER BASED, Parameter: TOP-K, Neighbourhood Size: 2, Similarity Threshold: 0.5, Include Negative Correlations: False
+MAE: None
+
