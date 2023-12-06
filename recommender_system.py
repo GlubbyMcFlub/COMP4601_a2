@@ -403,8 +403,15 @@ class RecommenderSystem:
 
 
                 # Compute weighted sum of ratings from neighbors based on Pearson's correlation coefficient
+                print(f"filtered_indices: {filtered_indices}, user: {self.users[filtered_indices]}")
+                print(f"item_index: {item_index}, item: {self.items[item_index]}")
+                print(f"ratings for neighbors: {self.ratings[filtered_indices, item_index]}")
+                print(f"Similarities: {similarities[user_index, filtered_indices]} * Ratings: {self.ratings[filtered_indices, item_index]}\n{self.ratings}")
                 weighted_ratings = similarities[user_index, filtered_indices] * self.ratings[filtered_indices, item_index]
+                print(f"Weighted ratings: {weighted_ratings}")
                 predict_rating = np.sum(weighted_ratings) / np.sum(np.abs(similarities[user_index, filtered_indices]))
+                print(f"Predicted rating: {predict_rating} = {np.sum(weighted_ratings)} / {np.sum(np.abs(similarities[user_index, filtered_indices]))}")
+                
                 
                 if np.isnan(predict_rating) or np.isinf(predict_rating) or np.sum(np.abs(similarities[user_index, filtered_indices])) == 0:
                     # Handle the case where division by zero or other invalid values occur
