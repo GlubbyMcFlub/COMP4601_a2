@@ -117,49 +117,54 @@ class RecommenderSystem:
         Returns:
         float: Similarity between the two items.
         """
-
+        
         num_common_users = len(common_users)
 
         if num_common_users == 0:
             return 0
+        
+        
+        # numerator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) * (self.ratings[common_users, item2_index] - average_ratings[common_users]))
+        # item1_denominator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) ** 2)
+        # item2_denominator = np.sum((self.ratings[common_users, item2_index] - average_ratings[common_users]) ** 2)
+        common_user_item1 = []
+        common_user_item2 = []
+        for i in common_users:
+            common_user_item1.append(self.ratings[i, item1_index] - average_ratings[i])
+            common_user_item2.append(self.ratings[i, item2_index] - average_ratings[i])
+        numerator = sum(x * y for x, y in zip(common_user_item1, common_user_item2))
+        item1_denominator = 0
+        for num in common_user_item1:
+            item1_denominator += num ** 2
+        item2_denominator = 0
+        for num in common_user_item2:
+            item2_denominator += num ** 2
+        
+        denominator = math.sqrt(item1_denominator * item2_denominator)
+        # print(f"{item1_index}, {item2_index}, {numerator}, {denominator}")
+        similarity = max(0, numerator / denominator) if denominator != 0 else 0
 
-        try:
-            numerator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) * (self.ratings[common_users, item2_index] - average_ratings[common_users]))
-            item1_denominator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) ** 2)
-            item2_denominator = np.sum((self.ratings[common_users, item2_index] - average_ratings[common_users]) ** 2)
+        return similarity
 
-            denominator = math.sqrt(item1_denominator * item2_denominator)
-            similarity = max(0, numerator / denominator) if denominator != 0 else 0
-
-            return similarity
-
-        except Exception as e:
-            print("Error in compute_item_similarity:")
-            print(f"item1_index: {item1_index}, item2_index: {item2_index}")
-            print(f"common_users: {common_users}")
-            print(f"average_ratings: {average_ratings}")
-            print(f"ratings shape: {self.ratings.shape}")
-            raise e
-
-    def precompute_item_similarities(self, itemIndex):
+    def precompute_item_similarities(self, itemIndex, average_ratings):
         """
-        Precompute item similarities for the entire dataset.
+        Precompute item similarities for the given item.
 
         Returns:
         numpy.ndarray: array containing precomputed item similarities.
         """
         
         similarities = np.zeros((self.num_items, self.num_items), dtype=np.float64)
-        # calculate average ratings for all users, ignoring any missing ratings
-        average_ratings = np.nanmean(np.where(self.ratings != self.MISSING_RATING, self.ratings, np.nan), axis=1)
 
+        item1_ratings = np.where(self.ratings[:, itemIndex] != self.MISSING_RATING)[0]
+        
         for j in range(self.num_items):
             if j != itemIndex:
-                # find common users who rated both items i and j
-                item1_ratings = np.where(self.ratings[:, itemIndex] != self.MISSING_RATING)[0]
+                # find common users who rated both items itemIndex and j
                 item2_ratings = np.where(self.ratings[:, j] != self.MISSING_RATING)[0]
                 common_users = np.intersect1d(item1_ratings, item2_ratings)
-                # calculate ismilarity between items i and j based on common users
+
+                # calculate similarity between items itemIndex and j based on common users
                 similarity = self.compute_item_similarity(itemIndex, j, common_users, average_ratings)
                 similarities[itemIndex, j] = similarity
                 similarities[j, itemIndex] = similarity
@@ -426,23 +431,33 @@ class RecommenderSystem:
             start_time = time.time()
             test_set_size = 0
             numerator = 0
+            similarity_time = 0
+            prediction_time = 0
 
             under_predictions = 0
             over_predictions = 0
             no_valid_neighbours = 0
             total_neighbours_used = 0
+            # calculate average ratings for all users, ignoring any missing ratings
+            average_ratings = np.nanmean(np.where(self.ratings != self.MISSING_RATING, self.ratings, np.nan), axis=1)
 
             for i in range(self.num_users):
                 for j in range(self.num_items):
                     if not np.isnan(self.ratings[i, j]) and not self.ratings[i, j] == self.MISSING_RATING:
+                        
                         test_set_size += 1
                         temp = self.ratings[i, j]
                         self.ratings[i, j] = self.MISSING_RATING
+                        average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
 
-                        similarities = self.precompute_item_similarities(j)
+                        similarity_start_time = time.time()
+                        similarities = self.precompute_item_similarities(j, average_ratings)
+                        similarity_time += time.time() - similarity_start_time
 
                         # predict the rating for each user-item pair
+                        prediction_start_time = time.time()
                         predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
+                        prediction_time += time.time() - prediction_start_time
 
                         if not np.isnan(predicted_rating):
                             error = abs(predicted_rating - temp)
@@ -459,8 +474,16 @@ class RecommenderSystem:
                             total_neighbours_used += adjusted_neighbourhood_size
 
                         self.ratings[i, j] = temp
+                        average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
 
             mae = numerator / test_set_size
+            # print(f"Numerator = {numerator}")
+            # print(f"test_set_size = {test_set_size}")
+            # print(f"Total predictions: {test_set_size}")
+            # print(f"Total under predictions (< {1}): {under_predictions}")
+            # print(f"Total over predictions (> {5}): {over_predictions}")
+            # print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
+            # print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
             print(f"MAE: {mae}")
 
             elapsed_time = time.time() - start_time
@@ -469,11 +492,22 @@ class RecommenderSystem:
                 print(f"Start: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
             else:
                 print(f"Start: {elapsed_time:.3f}s")
+            if similarity_time >= 60:
+                minutes, seconds = divmod(similarity_time, 60)
+                print(f"similarity: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+            else:
+                print(f"similarity: {elapsed_time:.3f}s")
+            if prediction_time >= 60:
+                minutes, seconds = divmod(prediction_time, 60)
+                print(f"prediction_time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+            else:
+                print(f"prediction_time: {elapsed_time:.3f}s")
 
             return mae
         except Exception as err:
             print(f"Error: {str(err)}")
             return None
+
         
     def run(self):
         '''
