@@ -1,0 +1,2 @@
+File: assignment2-data.txt
+Algorithm: 0, Parameter: 0, Neighbourhood Size: 2, Similarity Threshold: 0.2, Include Negative Correlations: False

@@ -1,0 +1,4 @@
+File: assignment2-data.txt
+Algorithm: 1, Parameter: 1, Neighbourhood Size: 2, Similarity Threshold: 0.2, Include Negative Correlations: False
+File: parsed-data-trimmed.txt
+Algorithm: 1, Parameter: 1, Neighbourhood Size: 2, Similarity Threshold: 0.2, Include Negative Correlations: False

@@ -7,7 +7,7 @@ class RecommenderSystem:
     '''
     RecommenderSystem class for COMP4601 Assignment 2.
     '''
-    MISSING_RATING = 0.0
+    MISSING_RATING = 0
     DEFAULT_NEIGHBOURHOOD_SIZE = 5
     DEFAULT_SIMILARITY_THRESHOLD = 0.5
     ITEM_BASED_ALGORITHM = 0
@@ -98,31 +98,11 @@ class RecommenderSystem:
             return 0
 
         correlation = numerator / (denominator_user1 * denominator_user2)
-        return correlation
-    def precompute_user_similarities(self):
-        """
-        Precomputes the similarities between all pairs of users.
 
-        Returns:
-        - similarities (numpy.array): Matrix of precomputed similarities.
-        """
-        
-        similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
-
-        for i in range(self.num_users):
-            # Calculate for unique pairs
-            for j in range(i + 1, self.num_users): 
-                user1_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
-                user2_indices = np.where(self.ratings[j] != self.MISSING_RATING)[0]
-
-                intersecting_indices = np.intersect1d(user1_indices, user2_indices)
-                common_items = intersecting_indices
-
-                similarity = self.compute_similarity(self.ratings[i], self.ratings[j], common_items)
-                similarities[i, j] = similarity
-                similarities[j, i] = similarity
-
-        return similarities
+        if self.include_negative_correlations:
+            return correlation
+        else:
+            return max(0, correlation)
 
     def compute_item_similarity(self, item1_index, item2_index, common_users, average_ratings):
         """
@@ -137,20 +117,29 @@ class RecommenderSystem:
         Returns:
         float: Similarity between the two items.
         """
-        
+
         num_common_users = len(common_users)
 
         if num_common_users == 0:
             return 0
 
-        numerator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) * (self.ratings[common_users, item2_index] - average_ratings[common_users]))
-        item1_denominator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) ** 2)
-        item2_denominator = np.sum((self.ratings[common_users, item2_index] - average_ratings[common_users]) ** 2)
+        try:
+            numerator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) * (self.ratings[common_users, item2_index] - average_ratings[common_users]))
+            item1_denominator = np.sum((self.ratings[common_users, item1_index] - average_ratings[common_users]) ** 2)
+            item2_denominator = np.sum((self.ratings[common_users, item2_index] - average_ratings[common_users]) ** 2)
 
-        denominator = math.sqrt(item1_denominator * item2_denominator)
-        similarity = max(0, numerator / denominator) if denominator != 0 else 0
+            denominator = math.sqrt(item1_denominator * item2_denominator)
+            similarity = max(0, numerator / denominator) if denominator != 0 else 0
 
-        return similarity
+            return similarity
+
+        except Exception as e:
+            print("Error in compute_item_similarity:")
+            print(f"item1_index: {item1_index}, item2_index: {item2_index}")
+            print(f"common_users: {common_users}")
+            print(f"average_ratings: {average_ratings}")
+            print(f"ratings shape: {self.ratings.shape}")
+            raise e
 
     def precompute_item_similarities(self, itemIndex):
         """
@@ -174,6 +163,31 @@ class RecommenderSystem:
                 similarity = self.compute_item_similarity(itemIndex, j, common_users, average_ratings)
                 similarities[itemIndex, j] = similarity
                 similarities[j, itemIndex] = similarity
+
+        return similarities
+    
+    def precompute_user_similarities(self):
+        """
+        Precomputes the similarities between all pairs of users.
+
+        Returns:
+        - similarities (numpy.array): Matrix of precomputed similarities.
+        """
+        
+        similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
+
+        for i in range(self.num_users):
+            # Calculate for unique pairs
+            for j in range(i + 1, self.num_users): 
+                user1_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
+                user2_indices = np.where(self.ratings[j] != self.MISSING_RATING)[0]
+
+                intersecting_indices = np.intersect1d(user1_indices, user2_indices)
+                common_items = intersecting_indices
+
+                similarity = self.compute_user_similarity(self.ratings[i], self.ratings[j], common_items)
+                similarities[i, j] = similarity
+                similarities[j, i] = similarity
 
         return similarities
     
@@ -246,48 +260,43 @@ class RecommenderSystem:
         - adjusted_neighbourhood_size (int): Adjusted size of the neighbourhood used for prediction.
         """
         
-        # print(f"\nPredicting for user: {self.users[userIndex]}")
-        # print(f"Predicting for item: {self.items[itemIndex]}")
+        try:
+            # get all neighbours who rated the item, adjust neighbourhood size if necessary
+            neighbours = np.where((self.ratings[userIndex] != self.MISSING_RATING) & (similarities[itemIndex] > 0))[0]
+            adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighbours))
 
-        # get all neighbours who rated the item, adjust neighbourhood size if necessary
-        neighbours = np.where((self.ratings[userIndex] != self.MISSING_RATING) & (similarities[itemIndex] > 0))[0]
-        adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighbours))
+            # if no neighbours found, use average rating for item
+            if adjusted_neighbourhood_size == 0:
+                ratings_without_zeros = np.where(self.ratings[userIndex] != 0, self.ratings[userIndex], np.nan)
+                predict_rating = np.nanmean(ratings_without_zeros)
 
-        # if no neighbours found, use average rating for item
-        if adjusted_neighbourhood_size == 0:
-            ratings_without_zeros = np.where(self.ratings[userIndex] != 0, self.ratings[userIndex], np.nan)
-            predict_rating = np.nanmean(ratings_without_zeros)
+                total_similarity = 0
+            else:
 
-            total_similarity = 0
-            # print("No valid neighbours found.")
-        else:
-            # print(f"Found {adjusted_neighbourhood_size} valid neighbours:")
+                #create array of tuples using neighbours indices and similarities 
+                neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[itemIndex])]
 
-            #create array of tuples using neighbours indices and similarities 
-            neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[itemIndex])]
+                #sort array based on similarities in descending order for neighbourhood similarities
+                sorted_indices = [index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array]
 
-            #sort array based on similarities in descending order for neighbourhood similarities
-            sorted_indices = [index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array]
+                top_neighbours_indices = sorted_indices[:adjusted_neighbourhood_size]
 
-            top_neighbours_indices = sorted_indices[:adjusted_neighbourhood_size]
+                sum_ratings = np.sum(similarities[itemIndex, top_neighbours_indices] * self.ratings[userIndex, top_neighbours_indices])
+                total_similarity = np.sum(similarities[itemIndex, top_neighbours_indices])
 
-            sum_ratings = np.sum(similarities[itemIndex, top_neighbours_indices] * self.ratings[userIndex, top_neighbours_indices])
-            total_similarity = np.sum(similarities[itemIndex, top_neighbours_indices])
+                predict_rating = max(0, min(5, sum_ratings / total_similarity)) if total_similarity != 0 else np.nanmean(self.ratings[userIndex])
 
-            # print(f"Initial predicted value: {sum_ratings / total_similarity}")
-            predict_rating = max(0, min(5, sum_ratings / total_similarity)) if total_similarity != 0 else np.nanmean(self.ratings[userIndex])
-
-            # print(f"Final predicted value: {predict_rating}")
-
-        return predict_rating, total_similarity, adjusted_neighbourhood_size
-
-    def find_user_mae(self):
-        #TODO: this is just a copy of the item version. Make this for users
+            return predict_rating, total_similarity, adjusted_neighbourhood_size
+        except Exception as err:
+            print(f"Error in predict_rating: {str(err)}")
+            return None, None, None
+    
+    def find_similarity_threshold_mae(self):
         """
-        Find the Mean Absolute Error (MAE) for the prediction model.
+        Find the Mean Absolute Error (MAE) for the similarity threshold-based prediction model.
 
         Returns:
-        float: Mean Absolute Error (MAE) for the prediction model.
+        float: Mean Absolute Error (MAE) for the similarity threshold-based prediction model.
         """
         
         try:
@@ -300,6 +309,8 @@ class RecommenderSystem:
             no_valid_neighbours = 0
             total_neighbours_used = 0
 
+            similarities = self.precompute_item_similarities()
+
             for i in range(self.num_users):
                 for j in range(self.num_items):
                     if not np.isnan(self.ratings[i, j]) and not self.ratings[i, j] == self.MISSING_RATING:
@@ -307,10 +318,70 @@ class RecommenderSystem:
                         temp = self.ratings[i, j]
                         self.ratings[i, j] = self.MISSING_RATING
 
-                        similarities = self.precompute_item_similarities(j)
+                        # predict the rating for each user-item pair
+                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
+
+                        if not np.isnan(predicted_rating):
+                            error = abs(predicted_rating - temp)
+                            numerator += error
+
+                            if error < self.MIN_RATING:
+                                under_predictions += 1
+                            elif error > self.MAX_RATING:
+                                over_predictions += 1
+
+                        if np.isnan(predicted_rating) or np.isinf(predicted_rating) or total_similarity == 0 or total_similarity < self.similarity_threshold:
+                            no_valid_neighbours += 1
+                        else:
+                            total_neighbours_used += adjusted_neighbourhood_size
+
+                        self.ratings[i, j] = temp
+
+            mae = numerator / test_set_size
+            print(f"MAE: {mae}")
+
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= 60:
+                minutes, seconds = divmod(elapsed_time, 60)
+                print(f"Elapsed time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+            else:
+                print(f"Elapsed time: {elapsed_time:.3f}s")
+
+            return mae
+        except Exception as err:
+            print(f"Error: {str(err)}")
+            return None
+
+    def find_user_mae(self):
+        """
+        Find the Mean Absolute Error (MAE) for the user-based prediction model.
+
+        Returns:
+        float: Mean Absolute Error (MAE) for the user-based prediction model.
+        """
+        
+        try:
+            start_time = time.time()
+            test_set_size = 0
+            numerator = 0
+
+            under_predictions = 0
+            over_predictions = 0
+            no_valid_neighbours = 0
+            total_neighbours_used = 0
+
+            similarities = self.precompute_user_similarities()
+
+            for i in range(self.num_users):
+                for j in range(self.num_items):
+                    if not np.isnan(self.ratings[i, j]) and not self.ratings[i, j] == self.MISSING_RATING:
+                        test_set_size += 1
+                        temp = self.ratings[i, j]
+                        self.ratings[i, j] = self.MISSING_RATING
 
                         # predict the rating for each user-item pair
                         predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
+                        print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
 
                         if not np.isnan(predicted_rating):
                             error = abs(predicted_rating - temp)
@@ -329,27 +400,19 @@ class RecommenderSystem:
                         self.ratings[i, j] = temp
 
             mae = numerator / test_set_size
-            # print(f"Numerator = {numerator}")
-            # print(f"test_set_size = {test_set_size}")
-            # print(f"Total predictions: {test_set_size}")
-            # print(f"Total under predictions (< {1}): {under_predictions}")
-            # print(f"Total over predictions (> {5}): {over_predictions}")
-            # print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
-            # print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
             print(f"MAE: {mae}")
 
             elapsed_time = time.time() - start_time
             if elapsed_time >= 60:
                 minutes, seconds = divmod(elapsed_time, 60)
-                print(f"Start: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+                print(f"Elapsed time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
             else:
-                print(f"Start: {elapsed_time:.3f}s")
+                print(f"Elapsed time: {elapsed_time:.3f}s")
 
             return mae
         except Exception as err:
             print(f"Error: {str(err)}")
             return None
-
 
     def find_item_mae(self):
         """
@@ -398,13 +461,6 @@ class RecommenderSystem:
                         self.ratings[i, j] = temp
 
             mae = numerator / test_set_size
-            # print(f"Numerator = {numerator}")
-            # print(f"test_set_size = {test_set_size}")
-            # print(f"Total predictions: {test_set_size}")
-            # print(f"Total under predictions (< {1}): {under_predictions}")
-            # print(f"Total over predictions (> {5}): {over_predictions}")
-            # print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
-            # print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
             print(f"MAE: {mae}")
 
             elapsed_time = time.time() - start_time
@@ -422,11 +478,10 @@ class RecommenderSystem:
     def run(self):
         '''
         Run the recommender system.
-        
+
         Returns:
-        None
+        float: Result of the algorithm (e.g., MAE).
         '''
-        # Placeholder
         print("Running the recommender system...")
         print(f"Algorithm: {'Item-Based' if self.algorithm == self.ITEM_BASED_ALGORITHM else 'User-Based'}")
         print(f"Parameter: {'Top-K Neighbours' if self.parameter == self.TOP_K_NEIGHBOURS else 'Similarity Threshold'}")
@@ -434,8 +489,16 @@ class RecommenderSystem:
         print(f"Similarity Threshold: {self.similarity_threshold}")
         print(f"Include Negative Correlations: {self.include_negative_correlations}")
 
-        result = self.find_item_mae() if self.algorithm == self.ITEM_BASED_ALGORITHM else self.find_user_mae()
+        if self.algorithm == self.ITEM_BASED_ALGORITHM:
+            result = self.find_item_mae()
+        elif self.algorithm == self.USER_BASED_ALGORITHM:
+            result = self.find_user_mae()
+        else:
+            print("Invalid algorithm selected.")
+            result = None
 
+        print(f"Result: {result}")
+        
         return result
 
 def main():
