@@ -334,7 +334,6 @@ class RecommenderSystem:
         Returns:
         - similarities (numpy.array): Matrix of precomputed similarities.
         """
-        
         similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
 
         for i in range(self.num_users):
@@ -343,9 +342,9 @@ class RecommenderSystem:
                 user2_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
 
                 intersecting_indices = np.intersect1d(user1_indices, user2_indices)
-                common_items = intersecting_indices
+                common_users = intersecting_indices 
 
-                similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_items, average_ratings)
+                similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_users, average_ratings)  # Corrected parameter
                 similarities[user_index, i] = similarity
                 similarities[i, user_index] = similarity
 
@@ -401,27 +400,24 @@ class RecommenderSystem:
                 for i, idx in enumerate(filtered_indices):
                     print(f"{i + 1}. User {self.users[idx]} sim={similarities[user_index, idx]}")
 
+                # Calculate the predicted rating using the given formula
+                numerator = 0
+                denominator = 0
 
-                # Compute weighted sum of ratings from neighbors based on Pearson's correlation coefficient
-                print(f"filtered_indices: {filtered_indices}, user: {self.users[filtered_indices]}")
-                print(f"item_index: {item_index}, item: {self.items[item_index]}")
-                print(f"ratings for neighbors: {self.ratings[filtered_indices, item_index]}")
-                print(f"Similarities: {similarities[user_index, filtered_indices]} * Ratings: {self.ratings[filtered_indices, item_index]}\n{self.ratings}")
-                weighted_ratings = similarities[user_index, filtered_indices] * self.ratings[filtered_indices, item_index]
-                print(f"Weighted ratings: {weighted_ratings}")
-                predict_rating = np.sum(weighted_ratings) / np.sum(np.abs(similarities[user_index, filtered_indices]))
-                print(f"Predicted rating: {predict_rating} = {np.sum(weighted_ratings)} / {np.sum(np.abs(similarities[user_index, filtered_indices]))}")
-                
-                
-                if np.isnan(predict_rating) or np.isinf(predict_rating) or np.sum(np.abs(similarities[user_index, filtered_indices])) == 0:
-                    # Handle the case where division by zero or other invalid values occur
+                for idx in filtered_indices:
+                    similarity = similarities[user_index, idx]
+                    rating_diff = self.ratings[idx, item_index] - np.nanmean(self.ratings[idx])
+                    numerator += similarity * rating_diff
+                    denominator += abs(similarity)
+
+                if denominator == 0:
+                    # Handle the case where the denominator is zero to avoid division by zero
                     predict_rating = np.nanmean(self.ratings[user_index])
-
-                print(f"Initial predicted value: {predict_rating:.2f}")
+                else:
+                    predict_rating = np.nanmean(self.ratings[user_index]) + numerator / denominator
 
                 # Clip the final predicted value to be within the rating range
                 predict_rating = max(self.MIN_RATING, min(predict_rating, self.MAX_RATING))
-
 
                 total_similarity = np.sum(np.abs(similarities[user_index, filtered_indices]))
 
