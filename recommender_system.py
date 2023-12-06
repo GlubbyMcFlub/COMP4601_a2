@@ -171,7 +171,7 @@ class RecommenderSystem:
 
         return similarities
     
-    def precompute_user_similarities(self):
+    def precompute_user_similarities(self, user_index):
         """
         Precomputes the similarities between all pairs of users.
 
@@ -182,16 +182,16 @@ class RecommenderSystem:
         similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
 
         for i in range(self.num_users):
-            for j in range(i + 1, self.num_users):
-                user1_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
-                user2_indices = np.where(self.ratings[j] != self.MISSING_RATING)[0]
+            if i != user_index:
+                user1_indices = np.where(self.ratings[user_index] != self.MISSING_RATING)[0]
+                user2_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
 
                 intersecting_indices = np.intersect1d(user1_indices, user2_indices)
                 common_items = intersecting_indices
 
-                similarity = self.compute_user_similarity(self.ratings[i], self.ratings[j], common_items)
-                similarities[i, j] = similarity
-                similarities[j, i] = similarity
+                similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_items)
+                similarities[user_index, i] = similarity
+                similarities[i, user_index] = similarity
 
         return similarities
     
@@ -246,11 +246,71 @@ class RecommenderSystem:
             predicted_ratings.append(current_user_predicted_ratings)
 
         return predicted_ratings
-
-    def predict_rating(self, user_index, item_index, similarities):
-        #TODO: choose top neighbours based on threshold instead
+    def predict_user_rating(self, user_index, item_index, similarities):
+        #TODO: change this to work with user
         """
-        Predict a single rating for a user-item pair.
+        Predict a single rating for a user-item pair user algorithm
+
+        Parameters:
+        - user_index (int): Index of the user.
+        - item_index (int): Index of the item.
+        - similarities (numpy.ndarray): 2D array containing precomputed item similarities.
+
+        Returns:
+        Tuple containing:
+        - predict_rating (float): Predicted rating for the user-item pair.
+        - total_similarity (float): Total similarity score of the neighbourhood.
+        - adjusted_neighbourhood_size (int): Adjusted size of the neighbourhood used for prediction.
+        """
+        
+        try:
+            # get all neighbours who rated the item, adjust neighbourhood size if necessary
+            neighbours = np.where((self.ratings[user_index] != self.MISSING_RATING) & (similarities[item_index] > 0))[0]
+            adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighbours))
+
+            # if no neighbours found, use average rating for item
+            if adjusted_neighbourhood_size == 0:
+                ratings_without_zeros = np.where(self.ratings[user_index] != 0, self.ratings[user_index], np.nan)
+                predict_rating = np.nanmean(ratings_without_zeros)
+
+                total_similarity = 0
+            else:
+                #create array of tuples using neighbours indices and similarities
+                if (self.include_negative_correlations or self.filter_type == self.TOP_K_NEIGHBOURS):
+                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[item_index]))]
+                else:
+                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[item_index])]
+
+                #sort array based on similarities in descending order for neighbourhood similarities
+                sorted_indices = np.array([index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
+                
+                # Filtering technique
+                if (self.filter_type == self.SIMILARITY_THRESHOLD):
+                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold]
+                elif (self.filter_type == self.TOP_K_NEIGHBOURS):
+                    filtered_indices = sorted_indices[:adjusted_neighbourhood_size]
+                else:
+                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold][:adjusted_neighbourhood_size]
+                    
+                #print(f"Filtered indices: {filtered_indices}")
+
+                sum_ratings = np.sum(similarities[item_index, filtered_indices] * self.ratings[user_index, filtered_indices])
+                if (self.include_negative_correlations):
+                    total_similarity = np.sum(abs(similarities[item_index, filtered_indices]))
+                else:
+                    total_similarity = np.sum(similarities[item_index, filtered_indices])
+                
+
+                predict_rating = max(0, min(5, sum_ratings / total_similarity)) if total_similarity != 0 else np.nanmean(self.ratings[user_index])
+
+            return predict_rating, total_similarity, adjusted_neighbourhood_size
+        except Exception as err:
+            print(f"Error in predict_rating: {str(err)}")
+            return None, None, None
+
+    def predict_item_rating(self, user_index, item_index, similarities):
+        """
+        Predict a single rating for a user-item pair item algorithm
 
         Parameters:
         - user_index (int): Index of the user.
@@ -328,7 +388,8 @@ class RecommenderSystem:
             no_valid_neighbours = 0
             total_neighbours_used = 0
 
-            similarities = self.precompute_user_similarities()
+            # calculate average ratings for all users, ignoring any missing ratings
+            average_ratings = np.nanmean(np.where(self.ratings != self.MISSING_RATING, self.ratings, np.nan), axis=1)
 
             for i in range(self.num_users):
                 for j in range(self.num_items):
@@ -336,9 +397,11 @@ class RecommenderSystem:
                         test_set_size += 1
                         temp = self.ratings[i, j]
                         self.ratings[i, j] = self.MISSING_RATING
+                        average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
+                        similarities = self.precompute_user_similarities(i, average_ratings)
 
                         # predict the rating for each user-item pair
-                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
+                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_user_rating(i, j, similarities)
                         print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
 
                         if not np.isnan(predicted_rating):
@@ -356,6 +419,7 @@ class RecommenderSystem:
                             total_neighbours_used += adjusted_neighbourhood_size
 
                         self.ratings[i, j] = temp
+                        average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
 
             mae = numerator / test_set_size
             print(f"Total predictions: {test_set_size}")
@@ -414,7 +478,7 @@ class RecommenderSystem:
 
                         # predict the rating for each user-item pair
                         prediction_start_time = time.time()
-                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
+                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_item_rating(i, j, similarities)
                         prediction_time += time.time() - prediction_start_time
 
                         if not np.isnan(predicted_rating):
