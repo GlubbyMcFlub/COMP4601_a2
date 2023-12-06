@@ -64,7 +64,7 @@ class RecommenderSystem:
             return None, None, None, None, None
 
 
-    def compute_user_similarity(self, user1_ratings, user2_ratings, common_items):
+    def compute_user_similarity(self, user1_ratings, user2_ratings, common_items, average_ratings):
         """
         Computes the Pearson correlation coefficient (PCC) between two users based on their common item ratings.
 
@@ -171,7 +171,7 @@ class RecommenderSystem:
 
         return similarities
     
-    def precompute_user_similarities(self, user_index):
+    def precompute_user_similarities(self, user_index, average_ratings):
         """
         Precomputes the similarities between all pairs of users.
 
@@ -189,7 +189,7 @@ class RecommenderSystem:
                 intersecting_indices = np.intersect1d(user1_indices, user2_indices)
                 common_items = intersecting_indices
 
-                similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_items)
+                similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_items, average_ratings)
                 similarities[user_index, i] = similarity
                 similarities[i, user_index] = similarity
 
