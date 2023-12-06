@@ -146,7 +146,7 @@ class RecommenderSystem:
 
         return similarity
 
-    def precompute_item_similarities(self, itemIndex, average_ratings):
+    def precompute_item_similarities(self, item_index, average_ratings):
         """
         Precompute item similarities for the given item.
 
@@ -156,18 +156,18 @@ class RecommenderSystem:
         
         similarities = np.zeros((self.num_items, self.num_items), dtype=np.float64)
 
-        item1_ratings = np.where(self.ratings[:, itemIndex] != self.MISSING_RATING)[0]
+        item1_ratings = np.where(self.ratings[:, item_index] != self.MISSING_RATING)[0]
         
         for j in range(self.num_items):
-            if j != itemIndex:
-                # find common users who rated both items itemIndex and j
+            if j != item_index:
+                # find common users who rated both items item_index and j
                 item2_ratings = np.where(self.ratings[:, j] != self.MISSING_RATING)[0]
                 common_users = np.intersect1d(item1_ratings, item2_ratings)
 
-                # calculate similarity between items itemIndex and j based on common users
-                similarity = self.compute_item_similarity(itemIndex, j, common_users, average_ratings)
-                similarities[itemIndex, j] = similarity
-                similarities[j, itemIndex] = similarity
+                # calculate similarity between items item_index and j based on common users
+                similarity = self.compute_item_similarity(item_index, j, common_users, average_ratings)
+                similarities[item_index, j] = similarity
+                similarities[j, item_index] = similarity
 
         return similarities
     
@@ -247,14 +247,14 @@ class RecommenderSystem:
 
         return predicted_ratings
 
-    def predict_rating(self, userIndex, itemIndex, similarities):
+    def predict_rating(self, user_index, item_index, similarities):
         #TODO: choose top neighbours based on threshold instead
         """
         Predict a single rating for a user-item pair.
 
         Parameters:
-        - userIndex (int): Index of the user.
-        - itemIndex (int): Index of the item.
+        - user_index (int): Index of the user.
+        - item_index (int): Index of the item.
         - similarities (numpy.ndarray): 2D array containing precomputed item similarities.
 
         Returns:
@@ -266,12 +266,12 @@ class RecommenderSystem:
         
         try:
             # get all neighbours who rated the item, adjust neighbourhood size if necessary
-            neighbours = np.where((self.ratings[userIndex] != self.MISSING_RATING) & (similarities[itemIndex] > 0))[0]
+            neighbours = np.where((self.ratings[user_index] != self.MISSING_RATING) & (similarities[item_index] > 0))[0]
             adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighbours))
 
             # if no neighbours found, use average rating for item
             if adjusted_neighbourhood_size == 0:
-                ratings_without_zeros = np.where(self.ratings[userIndex] != 0, self.ratings[userIndex], np.nan)
+                ratings_without_zeros = np.where(self.ratings[user_index] != 0, self.ratings[user_index], np.nan)
                 predict_rating = np.nanmean(ratings_without_zeros)
 
                 total_similarity = 0
@@ -279,9 +279,9 @@ class RecommenderSystem:
                 #create array of tuples using neighbours indices and similarities
                 # TODO: VERIFY THAT THIS IS CORRECT!!!!!!!!!!!!!!!!!
                 if (self.include_negative_correlations or self.filter_type == self.TOP_K_NEIGHBOURS):
-                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[itemIndex]))]
+                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[item_index]))]
                 else:
-                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[itemIndex])]
+                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[item_index])]
 
                 #sort array based on similarities in descending order for neighbourhood similarities
                 sorted_indices = np.array([index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
@@ -296,14 +296,14 @@ class RecommenderSystem:
                     
                 #print(f"Filtered indices: {filtered_indices}")
 
-                sum_ratings = np.sum(similarities[itemIndex, filtered_indices] * self.ratings[userIndex, filtered_indices])
+                sum_ratings = np.sum(similarities[item_index, filtered_indices] * self.ratings[user_index, filtered_indices])
                 if (self.include_negative_correlations):
-                    total_similarity = np.sum(abs(similarities[itemIndex, filtered_indices]))
+                    total_similarity = np.sum(abs(similarities[item_index, filtered_indices]))
                 else:
-                    total_similarity = np.sum(similarities[itemIndex, filtered_indices])
+                    total_similarity = np.sum(similarities[item_index, filtered_indices])
                 
 
-                predict_rating = max(0, min(5, sum_ratings / total_similarity)) if total_similarity != 0 else np.nanmean(self.ratings[userIndex])
+                predict_rating = max(0, min(5, sum_ratings / total_similarity)) if total_similarity != 0 else np.nanmean(self.ratings[user_index])
 
             return predict_rating, total_similarity, adjusted_neighbourhood_size
         except Exception as err:
