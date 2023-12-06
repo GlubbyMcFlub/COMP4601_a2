@@ -350,7 +350,7 @@ class RecommenderSystem:
 
         return similarities
     
-    def predict_user_rating(self, user_index, item_index, similarities):
+    def predict_user_rating(self, user_index, item_index, similarities, average_ratings):
         """
         Predict a single rating for a user-item pair using the user-based algorithm.
 
@@ -403,18 +403,18 @@ class RecommenderSystem:
                 # Calculate the predicted rating using the given formula
                 numerator = 0
                 denominator = 0
-
+                print(filtered_indices)
                 for idx in filtered_indices:
                     similarity = similarities[user_index, idx]
-                    rating_diff = self.ratings[idx, item_index] - np.nanmean(self.ratings[idx])
+                    rating_diff = self.ratings[idx, item_index] - average_ratings[idx]
                     numerator += similarity * rating_diff
                     denominator += abs(similarity)
-
+                print(f"{numerator}/{denominator}")
                 if denominator == 0:
                     # Handle the case where the denominator is zero to avoid division by zero
-                    predict_rating = np.nanmean(self.ratings[user_index])
+                    predict_rating = average_ratings[user_index]
                 else:
-                    predict_rating = np.nanmean(self.ratings[user_index]) + numerator / denominator
+                    predict_rating = average_ratings[user_index] + numerator / denominator
 
                 # Clip the final predicted value to be within the rating range
                 predict_rating = max(self.MIN_RATING, min(predict_rating, self.MAX_RATING))
@@ -458,7 +458,7 @@ class RecommenderSystem:
                         similarities = self.precompute_user_similarities(i, average_ratings)
 
                         # predict the rating for each user-item pair
-                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_user_rating(i, j, similarities)
+                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_user_rating(i, j, similarities, average_ratings)
                         #print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
 
                         if not np.isnan(predicted_rating):
