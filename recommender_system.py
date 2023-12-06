@@ -182,8 +182,7 @@ class RecommenderSystem:
         similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
 
         for i in range(self.num_users):
-            # Calculate for unique pairs
-            for j in range(i + 1, self.num_users): 
+            for j in range(i + 1, self.num_users):
                 user1_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
                 user2_indices = np.where(self.ratings[j] != self.MISSING_RATING)[0]
 
@@ -310,67 +309,6 @@ class RecommenderSystem:
         except Exception as err:
             print(f"Error in predict_rating: {str(err)}")
             return None, None, None
-    
-    def find_similarity_threshold_mae(self):
-        """
-        Find the Mean Absolute Error (MAE) for the similarity threshold-based prediction model.
-
-        Returns:
-        float: Mean Absolute Error (MAE) for the similarity threshold-based prediction model.
-        """
-        
-        try:
-            start_time = time.time()
-            test_set_size = 0
-            numerator = 0
-
-            under_predictions = 0
-            over_predictions = 0
-            no_valid_neighbours = 0
-            total_neighbours_used = 0
-
-            similarities = self.precompute_item_similarities()
-
-            for i in range(self.num_users):
-                for j in range(self.num_items):
-                    if not np.isnan(self.ratings[i, j]) and not self.ratings[i, j] == self.MISSING_RATING:
-                        test_set_size += 1
-                        temp = self.ratings[i, j]
-                        self.ratings[i, j] = self.MISSING_RATING
-
-                        # predict the rating for each user-item pair
-                        predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
-
-                        if not np.isnan(predicted_rating):
-                            error = abs(predicted_rating - temp)
-                            numerator += error
-
-                            if error < self.MIN_RATING:
-                                under_predictions += 1
-                            elif error > self.MAX_RATING:
-                                over_predictions += 1
-
-                        if np.isnan(predicted_rating) or np.isinf(predicted_rating) or total_similarity == 0 or total_similarity < self.similarity_threshold:
-                            no_valid_neighbours += 1
-                        else:
-                            total_neighbours_used += adjusted_neighbourhood_size
-
-                        self.ratings[i, j] = temp
-
-            mae = numerator / test_set_size
-            print(f"MAE: {mae}")
-
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= 60:
-                minutes, seconds = divmod(elapsed_time, 60)
-                print(f"Elapsed time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
-            else:
-                print(f"Elapsed time: {elapsed_time:.3f}s")
-
-            return mae
-        except Exception as err:
-            print(f"Error: {str(err)}")
-            return None
 
     def find_user_mae(self):
         """
@@ -401,7 +339,7 @@ class RecommenderSystem:
 
                         # predict the rating for each user-item pair
                         predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_rating(i, j, similarities)
-                        #print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
+                        print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
 
                         if not np.isnan(predicted_rating):
                             error = abs(predicted_rating - temp)
@@ -420,6 +358,11 @@ class RecommenderSystem:
                         self.ratings[i, j] = temp
 
             mae = numerator / test_set_size
+            print(f"Total predictions: {test_set_size}")
+            print(f"Total under predictions (< {1}): {under_predictions}")
+            print(f"Total over predictions (> {5}): {over_predictions}")
+            print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
+            print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
             print(f"MAE: {mae}")
 
             elapsed_time = time.time() - start_time

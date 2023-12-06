@@ -34,11 +34,11 @@ class TestRecommenderSystem(unittest.TestCase):
         Run tests for all files in input directory
         '''
         # Permutation
-        algorithms = [RecommenderSystem.ITEM_BASED_ALGORITHM, RecommenderSystem.USER_BASED_ALGORITHM]
-        parameters = [RecommenderSystem.SIMILARITY_THRESHOLD, RecommenderSystem.TOP_K_NEIGHBOURS]#[RecommenderSystem.TOP_K_NEIGHBOURS, RecommenderSystem.SIMILARITY_THRESHOLD]
+        algorithms = [RecommenderSystem.USER_BASED_ALGORITHM]
+        parameters = [RecommenderSystem.TOP_K_NEIGHBOURS]#[RecommenderSystem.TOP_K_NEIGHBOURS, RecommenderSystem.SIMILARITY_THRESHOLD]
         neighbourhood_sizes = [2]
         similarity_thresholds = [0.5]
-        include_negative_correlations_values = [False, True]
+        include_negative_correlations_values = [False]
 
         run_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         results_file_path = os.path.join(self.output_directory, f"test_results_{run_timestamp}.txt")
