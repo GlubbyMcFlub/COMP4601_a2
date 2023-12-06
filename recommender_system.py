@@ -153,7 +153,7 @@ class RecommenderSystem:
         
         try:
             # get all neighbours who rated the item, adjust neighbourhood size if necessary
-            neighbours = np.where((self.ratings[user_index] != self.MISSING_RATING) & (similarities[item_index] > 0))[0]
+            neighbours = np.where(self.ratings[user_index] != self.MISSING_RATING)[0]
             adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighbours))
 
             # if no neighbours found, use average rating for item
@@ -368,7 +368,7 @@ class RecommenderSystem:
         """
         try:
             # Get all neighbours who rated the item, adjust neighborhood size if necessary
-            neighbours = np.where((self.ratings[:, item_index] != self.MISSING_RATING) & (similarities[user_index, :] > 0))[0]
+            neighbours = np.where(self.ratings[:, item_index] != self.MISSING_RATING)[0]
             adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighbours))
 
             # If no neighbours found, use the average rating for the user
@@ -377,15 +377,17 @@ class RecommenderSystem:
                 predict_rating = np.nanmean(ratings_without_zeros)
                 total_similarity = 0
             else:
+                # print(f"{self.users[user_index]}, {self.items[item_index]}\n {neighbours}")
                 # Create array of tuples using neighbours indices and similarities
                 if (self.include_negative_correlations):
                     neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[user_index, :]))]
                 else:
                     neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[user_index, :])]
+                # print(f"{self.users[user_index]}, {self.items[item_index]}\n {neighborhood_similarities}")
 
                 # Sort array based on similarities in descending order for neighborhood similarities
                 sorted_indices = np.array([index for _, index, is_in_array in sorted(neighborhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
-
+                print(f"{self.users[user_index]}, {self.items[item_index]}\n {sorted_indices}")
                 # Filtering technique
                 if (self.filter_type == self.SIMILARITY_THRESHOLD):
                     filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold]
@@ -504,6 +506,12 @@ class RecommenderSystem:
         print(f"Result: {result}")
         
         return result
+        #TODO:
+        # 1. work on predict user rating
+        # 2. investigate negatives
+        # 3. validate threshold
+        # 4. improve testing/logging
+        
     
     # def predict_ratings(self, similarities):
     #     #currently just here from lab#6
