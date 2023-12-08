@@ -36,9 +36,9 @@ class TestRecommenderSystem(unittest.TestCase):
         # Permutation
         algorithms = [RecommenderSystem.USER_BASED_ALGORITHM]
         parameters = [RecommenderSystem.TOP_K_NEIGHBOURS]#[RecommenderSystem.TOP_K_NEIGHBOURS, RecommenderSystem.SIMILARITY_THRESHOLD]
-        neighbourhood_sizes = [2]
+        neighbourhood_sizes = [5]
         similarity_thresholds = [0.5]
-        include_negative_correlations_values = [False]
+        include_negative_correlations_values = [True]
 
         run_timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         results_file_path = os.path.join(self.output_directory, f"test_results_{run_timestamp}.txt")
@@ -46,7 +46,7 @@ class TestRecommenderSystem(unittest.TestCase):
         with open(results_file_path, "w", encoding=None) as results_file:
             #for file in self.files:
             for i in [1]:
-                file = self.files[2]
+                file = self.files[1]
                 file_path = os.path.join(self.input_directory, file)
                 with self.subTest(file=file):
                     for algorithm in algorithms:
