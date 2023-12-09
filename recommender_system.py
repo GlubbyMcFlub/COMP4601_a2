@@ -169,7 +169,7 @@ class RecommenderSystem:
                 if (self.include_negative_correlations):
                     neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[item_index]))]
                 else:
-                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[item_index])]
+                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[item_index]) if num > 0]
 
                 #sort array based on similarities in descending order for neighbourhood similarities
                 sorted_indices = np.array([index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
@@ -374,21 +374,25 @@ class RecommenderSystem:
                     neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[user_index]))]
                 else:
                     neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[user_index]) if num > 0]
-                adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighborhood_similarities))
+                
                 # Sort array based on similarities in descending order for neighborhood similarities
                 sorted_indices = np.array([index for _, index, is_in_array in sorted(neighborhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
                 
-                # Filtering technique
+                # # Filtering technique
                 if self.filter_type == self.SIMILARITY_THRESHOLD:
                     filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold]
+                    adjusted_neighbourhood_size = len(filtered_indices)
                 elif self.filter_type == self.TOP_K_NEIGHBOURS:
+                    adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighborhood_similarities))
                     filtered_indices = sorted_indices[:adjusted_neighbourhood_size]
                     adjusted_neighbourhood_size = len(filtered_indices)
                 else:
+                    adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighborhood_similarities))
                     filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold][:adjusted_neighbourhood_size]
-
+                    adjusted_neighbourhood_size = len(filtered_indices)
+                # print(f"{adjusted_neighbourhood_size}")
                 # adjusted_neighbourhood_size = len(filtered_indices)
-                
+
                 # If no neighbors found, use the average rating for the user
                 if adjusted_neighbourhood_size == 0:
                     print(f"Found no valid neighbours:", file=file)
@@ -416,7 +420,7 @@ class RecommenderSystem:
                     else:
                         predict_rating = average_ratings[user_index] + numerator / denominator
 
-                    # Clip the final predicted value to be within the rating range
+                #     # Clip the final predicted value to be within the rating range
                     predict_rating = max(0, min(predict_rating, 5))
                     
                     total_similarity = np.sum(abs(similarities[user_index, filtered_indices]))
