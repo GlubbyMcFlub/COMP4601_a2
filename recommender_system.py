@@ -255,13 +255,13 @@ class RecommenderSystem:
                         average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
 
             mae = numerator / test_set_size
-            # print(f"Numerator = {numerator}")
-            # print(f"test_set_size = {test_set_size}")
-            # print(f"Total predictions: {test_set_size}")
-            # print(f"Total under predictions (< {1}): {under_predictions}")
-            # print(f"Total over predictions (> {5}): {over_predictions}")
-            # print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
-            # print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
+            print(f"Numerator = {numerator}")
+            print(f"test_set_size = {test_set_size}")
+            print(f"Total predictions: {test_set_size}")
+            print(f"Total under predictions (< {1}): {under_predictions}")
+            print(f"Total over predictions (> {5}): {over_predictions}")
+            print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
+            print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
             print(f"MAE: {mae}")
 
             elapsed_time = time.time() - start_time
@@ -442,6 +442,8 @@ class RecommenderSystem:
             start_time = time.time()
             test_set_size = 0
             numerator = 0
+            similarity_time = 0
+            prediction_time = 0
 
             under_predictions = 0
             over_predictions = 0
@@ -458,11 +460,15 @@ class RecommenderSystem:
                         temp = self.ratings[i, j]
                         self.ratings[i, j] = self.MISSING_RATING
                         average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
+
+                        similarity_start_time = time.time()
                         similarities = self.precompute_user_similarities(i, average_ratings)
+                        similarity_time += time.time() - similarity_start_time
 
                         # predict the rating for each user-item pair
+                        prediction_start_time = time.time()
                         predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_user_rating(i, j, similarities, average_ratings)
-                        #print(f"Predicted rating: {predicted_rating}, total similarity: {total_similarity}, adjusted neighbourhood size: {adjusted_neighbourhood_size}")
+                        prediction_time += time.time() - prediction_start_time
 
                         if not np.isnan(predicted_rating):
                             error = abs(predicted_rating - temp)
@@ -495,6 +501,16 @@ class RecommenderSystem:
                 print(f"Elapsed time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
             else:
                 print(f"Elapsed time: {elapsed_time:.3f}s")
+            if similarity_time >= 60:
+                minutes, seconds = divmod(similarity_time, 60)
+                print(f"similarity: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+            else:
+                print(f"similarity: {elapsed_time:.3f}s")
+            if prediction_time >= 60:
+                minutes, seconds = divmod(prediction_time, 60)
+                print(f"prediction_time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+            else:
+                print(f"prediction_time: {elapsed_time:.3f}s")
 
             return mae
         except Exception as err:
@@ -529,7 +545,5 @@ class RecommenderSystem:
         #TODO:
         # 1. investigate negative correlation as much as we can
         # 2. add print outs for max neighbours and max array sizes (range)
-        # 3. add prints for over and under/total predictions
         # 4. implement saving results to file
         # 5. start a run
-        # 6. print out times for each section
