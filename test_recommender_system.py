@@ -35,22 +35,27 @@ class TestRecommenderSystem(unittest.TestCase):
         '''
         # Permutation
         algorithms = [RecommenderSystem.ITEM_BASED_ALGORITHM, RecommenderSystem.USER_BASED_ALGORITHM]#, RecommenderSystem.ITEM_BASED_ALGORITHM]#, RecommenderSystem.ITEM_BASED_ALGORITHM]#, RecommenderSystem.ITEM_BASED_ALGORITHM]
-        parameters = [RecommenderSystem.SIMILARITY_THRESHOLD]#, RecommenderSystem.SIMILARITY_THRESHOLD]#[RecommenderSystem.TOP_K_NEIGHBOURS, RecommenderSystem.SIMILARITY_THRESHOLD]
+        parameters = [3]#, RecommenderSystem.SIMILARITY_THRESHOLD]#[RecommenderSystem.TOP_K_NEIGHBOURS, RecommenderSystem.SIMILARITY_THRESHOLD]
         neighbourhood_sizes = [2, 5, 10, 100, 700]
         similarity_thresholds = [0.9, 0.5, 0.1]
         include_negative_correlations_values = [False, True]
+        results_file_path = os.path.join(self.output_directory, "results2.txt")
+        file = self.files[0]
+        file_path = os.path.join(self.input_directory, file)
 
         for algorithm in algorithms:
             for parameter in parameters:
-                for neighbourhood_size in neighbourhood_sizes:
+                if parameter != RecommenderSystem.SIMILARITY_THRESHOLD:
+                    for neighbourhood_size in neighbourhood_sizes:
                         for include_negative_correlations in include_negative_correlations_values:
-                            results_file_path = os.path.join(self.output_directory, "results2.txt")
-                            file = self.files[0]
-                            file_path = os.path.join(self.input_directory, file)
                             if (not parameter == RecommenderSystem.TOP_K_NEIGHBOURS):
                                 for similarity_threshold in similarity_thresholds:
                                     self.run_test_for_file(file_path, algorithm, neighbourhood_size, similarity_threshold, include_negative_correlations, parameter, results_file_path)
                             else:
                                 self.run_test_for_file(file_path, algorithm, neighbourhood_size, 0, include_negative_correlations, parameter, results_file_path)
+                else:
+                    for include_negative_correlations in include_negative_correlations_values:
+                        for similarity_threshold in similarity_thresholds:
+                            self.run_test_for_file(file_path, algorithm, 0, similarity_threshold, include_negative_correlations, parameter, results_file_path)
 if __name__ == '__main__':
     unittest.main()
