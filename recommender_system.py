@@ -2,7 +2,8 @@ import os
 import math
 import numpy as np
 import time
-
+import logging
+import sys
 class RecommenderSystem:
     '''
     RecommenderSystem class for COMP4601 Assignment 2.
@@ -15,10 +16,10 @@ class RecommenderSystem:
     TOP_K_NEIGHBOURS = 0
     CLOSE_TO_ZERO_TOLERANCE = 1e-5
     SIMILARITY_THRESHOLD = 1
-    MIN_RATING = 1.0
+    MIN_RATING = 0.5
     MAX_RATING = 5.0
 
-    def __init__(self, path, algorithm, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, close_to_zero_tolerance=CLOSE_TO_ZERO_TOLERANCE, similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, include_negative_correlations=False, filter_type=TOP_K_NEIGHBOURS):
+    def __init__(self, path, algorithm, output_file, neighbourhood_size=DEFAULT_NEIGHBOURHOOD_SIZE, close_to_zero_tolerance=CLOSE_TO_ZERO_TOLERANCE, similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, include_negative_correlations=False, filter_type=TOP_K_NEIGHBOURS):
         """
         Initialize the RecommenderSystem object.
 
@@ -33,12 +34,33 @@ class RecommenderSystem:
         """
         self.path = path
         self.algorithm = algorithm
+        self.output_file = output_file
+        self.configure_logger()
         self.close_to_zero_tolerance = close_to_zero_tolerance
         self.neighbourhood_size = neighbourhood_size
         self.similarity_threshold = similarity_threshold
         self.include_negative_correlations = include_negative_correlations
         self.filter_type = filter_type
         self.num_users, self.num_items, self.users, self.items, self.ratings = self.read_data()
+        
+        self.min_filtered_neighbourhood_size = float('inf')
+        self.max_filtered_neighbourhood_size = 0
+        self.min_neighbours_size = float('inf')
+        self.max_neighbours_size = 0
+        
+    def configure_logger(self):
+        logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(self.output_file)
+        ])
+        self.logger = logging.getLogger(__name__)
+        
+    def close_logger(self):
+        """Close the file handler of the logger."""
+        for handler in self.logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                if not handler.closed:
+                    handler.close()
 
     def read_data(self):
         """
@@ -60,9 +82,9 @@ class RecommenderSystem:
                 ratings = np.array([[float(rating) if rating != self.MISSING_RATING else self.MISSING_RATING for rating in line.split()] for line in file])
                 return num_users, num_items, users, items, ratings
         except ValueError as err:
-            raise ValueError(f"Error: {str(err)}") from err
+            raise ValueError("Error: %s", str(err)) from err
         except FileNotFoundError as err:
-            print(f"Error: {str(err)}")
+            self.logger.error("Error in read_data: %s", str(err))
             return None, None, None, None, None
     
     ###################################
@@ -107,33 +129,57 @@ class RecommenderSystem:
             item2_denominator += num ** 2
         
         denominator = math.sqrt(item1_denominator * item2_denominator)
-        # print(f"{item1_index}, {item2_index}, {numerator}, {denominator}")
+        # self.logger.info(f"{item1_index}, {item2_index}, {numerator}, {denominator}")
         similarity = max(0, numerator / denominator) if denominator != 0 else 0
 
         return similarity
     
-    def precompute_item_similarities(self, item_index, average_ratings):
+    def precompute_item_similarities(self, user_index, item_index, average_ratings):
         """
         Precompute item similarities for the given item.
 
         Returns:
         numpy.ndarray: array containing precomputed item similarities.
         """
-        
-        similarities = np.zeros((self.num_items, self.num_items), dtype=np.float64)
+        similarity_matrix_file = f"similarities/item_{user_index}_{item_index}_similarity_matrix.npy"
 
-        item1_ratings = np.where(self.ratings[:, item_index] != self.MISSING_RATING)[0]
-        
-        for j in range(self.num_items):
-            if j != item_index:
-                # find common users who rated both items item_index and j
-                item2_ratings = np.where(self.ratings[:, j] != self.MISSING_RATING)[0]
-                common_users = np.intersect1d(item1_ratings, item2_ratings)
+        if os.path.exists(similarity_matrix_file):
+            #self.logger.info("Loading existing user similarity matrix from %s...", similarity_matrix_file)
+            similarities = np.load(similarity_matrix_file)
+        else:
+            #self.logger.info("Generating and saving user similarity matrix...")
+            similarities = np.zeros((self.num_items, self.num_items), dtype=np.float64)
 
-                # calculate similarity between items item_index and j based on common users
-                similarity = self.compute_item_similarity(item_index, j, common_users, average_ratings)
-                similarities[item_index, j] = similarity
-                similarities[j, item_index] = similarity
+            item1_ratings = np.where(self.ratings[:, item_index] != self.MISSING_RATING)[0]
+            
+            for j in range(self.num_items):
+                if j != item_index:
+                    # find common users who rated both items item_index and j
+                    item2_ratings = np.where(self.ratings[:, j] != self.MISSING_RATING)[0]
+                    common_users = np.intersect1d(item1_ratings, item2_ratings)
+
+                    # calculate similarity between items item_index and j based on common users
+                    similarity = self.compute_item_similarity(item_index, j, common_users, average_ratings)
+                    similarities[item_index, j] = similarity
+                    similarities[j, item_index] = similarity
+                    
+            os.makedirs(os.path.dirname(similarity_matrix_file), exist_ok=True)
+            np.save(similarity_matrix_file, similarities)
+        
+        # similarities = np.zeros((self.num_items, self.num_items), dtype=np.float64)
+
+        # item1_ratings = np.where(self.ratings[:, item_index] != self.MISSING_RATING)[0]
+        
+        # for j in range(self.num_items):
+        #     if j != item_index:
+        #         # find common users who rated both items item_index and j
+        #         item2_ratings = np.where(self.ratings[:, j] != self.MISSING_RATING)[0]
+        #         common_users = np.intersect1d(item1_ratings, item2_ratings)
+
+        #         # calculate similarity between items item_index and j based on common users
+        #         similarity = self.compute_item_similarity(item_index, j, common_users, average_ratings)
+        #         similarities[item_index, j] = similarity
+        #         similarities[j, item_index] = similarity
 
         return similarities
     
@@ -156,45 +202,60 @@ class RecommenderSystem:
         try:
             # get all neighbours who rated the item, adjust neighbourhood size if necessary
             neighbours = np.where(self.ratings[user_index] != self.MISSING_RATING)[0]
-            adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighbours))
+            self.min_neighbours_size = min(self.min_neighbours_size, len(neighbours))
+            self.max_neighbours_size = max(self.max_neighbours_size, len(neighbours))
+            
+            #create array of tuples using neighbours indices and similarities
+            if (self.include_negative_correlations):
+                filtered_indices = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[item_index])) if num != 0]
+            else:
+                filtered_indices = [(num, i, i in neighbours) for i, num in enumerate(similarities[item_index]) if num > 0]
+
+            #sort array based on similarities in descending order for neighbourhood similarities
+            sorted_indices = np.array([index for _, index, is_in_array in sorted(filtered_indices, key=lambda x: x[0], reverse=True) if is_in_array])
+
+            if self.filter_type == self.SIMILARITY_THRESHOLD:
+                filtered_indices = [index for index in sorted_indices if similarities[item_index][index] > self.similarity_threshold]
+                adjusted_neighbourhood_size = len(filtered_indices)
+            elif self.filter_type == self.TOP_K_NEIGHBOURS:
+                adjusted_neighbourhood_size = min(self.neighbourhood_size, len(filtered_indices))
+                filtered_indices = sorted_indices[:adjusted_neighbourhood_size]
+                adjusted_neighbourhood_size = len(filtered_indices)
+            else:
+                adjusted_neighbourhood_size = min(self.neighbourhood_size, len(filtered_indices))
+                filtered_indices = [index for index in sorted_indices if similarities[item_index][index] > self.similarity_threshold][:adjusted_neighbourhood_size]
+                adjusted_neighbourhood_size = len(filtered_indices)
+
+            # for data analysis
+            self.min_filtered_neighbourhood_size = min(self.min_filtered_neighbourhood_size, adjusted_neighbourhood_size)
+            self.max_filtered_neighbourhood_size = max(self.max_filtered_neighbourhood_size, adjusted_neighbourhood_size)
 
             # if no neighbours found, use average rating for item
             if adjusted_neighbourhood_size == 0:
                 ratings_without_zeros = np.where(self.ratings[user_index] != 0, self.ratings[user_index], np.nan)
                 predict_rating = np.nanmean(ratings_without_zeros)
-
                 total_similarity = 0
+                #self.logger.info("Found no valid neighbours")
             else:
-                #create array of tuples using neighbours indices and similarities
-                if (self.include_negative_correlations):
-                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[item_index]))]
-                else:
-                    neighbourhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[item_index]) if num > 0]
-
-                #sort array based on similarities in descending order for neighbourhood similarities
-                sorted_indices = np.array([index for _, index, is_in_array in sorted(neighbourhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
-                
-                # Filtering technique
-                if (self.filter_type == self.SIMILARITY_THRESHOLD):
-                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold]
-                elif (self.filter_type == self.TOP_K_NEIGHBOURS):
-                    filtered_indices = sorted_indices[:adjusted_neighbourhood_size]
-                else:
-                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold][:adjusted_neighbourhood_size]
-                    
-                #print(f"Filtered indices: {filtered_indices}")
-
                 sum_ratings = np.sum(similarities[item_index, filtered_indices] * self.ratings[user_index, filtered_indices])
+                
                 if (self.include_negative_correlations):
                     total_similarity = np.sum(abs(similarities[item_index, filtered_indices]))
                 else:
                     total_similarity = np.sum(similarities[item_index, filtered_indices])
                 
-                predict_rating = max(0, min(5, sum_ratings / total_similarity)) if abs(total_similarity) < self.close_to_zero_tolerance else np.nanmean(self.ratings[user_index])
+                if abs(total_similarity) < self.close_to_zero_tolerance:
+                    #self.logger.info("Total similarity is close to zero: %f", total_similarity)
+                    ratings_without_zeros = np.where(self.ratings[user_index] != 0, self.ratings[user_index], np.nan)
+                    predict_rating = np.nanmean(ratings_without_zeros)
+                    total_similarity = 0
+                else:
+                    predict_rating = sum_ratings / total_similarity
+                predict_rating = max(self.MIN_RATING, min(predict_rating, self.MAX_RATING))
 
             return predict_rating, total_similarity, adjusted_neighbourhood_size
         except Exception as err:
-            print(f"Error in predict_rating: {str(err)}")
+            self.logger.error("Error in predict_rating: %s", str(err))
             return None, None, None
     
     def find_item_mae(self):
@@ -206,11 +267,8 @@ class RecommenderSystem:
         """
         
         try:
-            start_time = time.time()
             test_set_size = 0
             numerator = 0
-            similarity_time = 0
-            prediction_time = 0
 
             under_predictions = 0
             over_predictions = 0
@@ -218,29 +276,36 @@ class RecommenderSystem:
             total_neighbours_used = 0
             # calculate average ratings for all users, ignoring any missing ratings
             average_ratings = np.nanmean(np.where(self.ratings != self.MISSING_RATING, self.ratings, np.nan), axis=1)
+            
+            # Times
+            start_time = time.time()
+            avg_run_time = 0
+            sim_run_time = 0
+            pred_run_time = 0
 
             for i in range(self.num_users):
                 for j in range(self.num_items):
                     if not np.isnan(self.ratings[i, j]) and not self.ratings[i, j] == self.MISSING_RATING:
-                        
                         test_set_size += 1
                         temp = self.ratings[i, j]
                         self.ratings[i, j] = self.MISSING_RATING
+                        avg_times = time.time()
                         average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
+                        avg_run_time += time.time() - avg_times
 
                         similarity_start_time = time.time()
-                        similarities = self.precompute_item_similarities(j, average_ratings)
-                        similarity_time += time.time() - similarity_start_time
+                        similarities = self.precompute_item_similarities(i, j, average_ratings)
+                        sim_run_time += time.time() - similarity_start_time
 
                         # predict the rating for each user-item pair
                         prediction_start_time = time.time()
                         predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_item_rating(i, j, similarities)
-                        prediction_time += time.time() - prediction_start_time
+                        pred_run_time += time.time() - prediction_start_time
 
                         if not np.isnan(predicted_rating):
                             error = abs(predicted_rating - temp)
                             numerator += error
-
+                            
                             if error < self.MIN_RATING:
                                 under_predictions += 1
                             elif error > self.MAX_RATING:
@@ -255,35 +320,26 @@ class RecommenderSystem:
                         average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
 
             mae = numerator / test_set_size
-            print(f"Numerator = {numerator}")
-            print(f"test_set_size = {test_set_size}")
-            print(f"Total predictions: {test_set_size}")
-            print(f"Total under predictions (< {1}): {under_predictions}")
-            print(f"Total over predictions (> {5}): {over_predictions}")
-            print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
-            print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
-            print(f"MAE: {mae}")
+            self.logger.info("Total predictions: %d", test_set_size)
+            self.logger.info("Total under predictions (< %d): %d", 1, under_predictions)
+            self.logger.info("Total over predictions (> %d): %d", 5, over_predictions)
+            self.logger.info("Number of cases with no valid neighbours: %d", no_valid_neighbours)
+            self.logger.info("Average neighbours used: %f", total_neighbours_used / test_set_size)
+            self.logger.info("MAE: %f", mae)
 
             elapsed_time = time.time() - start_time
             if elapsed_time >= 60:
                 minutes, seconds = divmod(elapsed_time, 60)
-                print(f"Start: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+                self.logger.info("Start: %d:%.3f (m:ss.mmm)", int(minutes), seconds)
             else:
-                print(f"Start: {elapsed_time:.3f}s")
-            if similarity_time >= 60:
-                minutes, seconds = divmod(similarity_time, 60)
-                print(f"similarity: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
-            else:
-                print(f"similarity: {elapsed_time:.3f}s")
-            if prediction_time >= 60:
-                minutes, seconds = divmod(prediction_time, 60)
-                print(f"prediction_time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
-            else:
-                print(f"prediction_time: {elapsed_time:.3f}s")
+                self.logger.info("Start: %.3fs", elapsed_time)
+            self.logger.info("Time to do averages: %.3fs", avg_run_time)
+            self.logger.info("Time to do similarities: %.3fs", sim_run_time)
+            self.logger.info("Time to do predictions: %.3fs", pred_run_time)
 
             return mae
         except Exception as err:
-            print(f"Error: {str(err)}")
+            self.logger.error("Error in find_item_mae: %s", str(err))
             return None
         
     ###################################
@@ -323,28 +379,55 @@ class RecommenderSystem:
 
         return correlation
     
-    def precompute_user_similarities(self, user_index, average_ratings):
+    def precompute_user_similarities(self, user_index, item_index, average_ratings):
         """
         Precomputes the similarities between all pairs of users.
 
         Returns:
         - similarities (numpy.array): Matrix of precomputed similarities.
         """
-        similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
+        try:
+            similarity_matrix_file = f"similarities/user_{user_index}_{item_index}_similarity_matrix.npy"
 
-        for i in range(self.num_users):
-            if i != user_index:
-                user1_indices = np.where(self.ratings[user_index] != self.MISSING_RATING)[0]
-                user2_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
+            if os.path.exists(similarity_matrix_file):
+                #self.logger.info("Loading existing user similarity matrix from %s...", similarity_matrix_file)
+                similarities = np.load(similarity_matrix_file)
+            else:
+                #self.logger.info("Generating and saving user similarity matrix...")
+                similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
 
-                intersecting_indices = np.intersect1d(user1_indices, user2_indices)
-                common_items = intersecting_indices 
+                for i in range(self.num_users):
+                    if i != user_index:
+                        user1_indices = np.where(self.ratings[user_index] != self.MISSING_RATING)[0]
+                        user2_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
 
-                similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_items, average_ratings[user_index], average_ratings[i])  # Corrected parameter
-                similarities[user_index, i] = similarity
-                similarities[i, user_index] = similarity
+                        intersecting_indices = np.intersect1d(user1_indices, user2_indices)
+                        common_items = intersecting_indices 
 
-        return similarities
+                        similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_items, average_ratings[user_index], average_ratings[i])
+                        similarities[user_index, i] = similarity
+                        similarities[i, user_index] = similarity
+                os.makedirs(os.path.dirname(similarity_matrix_file), exist_ok=True)
+                np.save(similarity_matrix_file, similarities)
+
+            # similarities = np.zeros((self.num_users, self.num_users), dtype=np.float64)
+
+            # for i in range(self.num_users):
+            #     if i != user_index:
+            #         user1_indices = np.where(self.ratings[user_index] != self.MISSING_RATING)[0]
+            #         user2_indices = np.where(self.ratings[i] != self.MISSING_RATING)[0]
+
+            #         intersecting_indices = np.intersect1d(user1_indices, user2_indices)
+            #         common_items = intersecting_indices 
+
+            #         similarity = self.compute_user_similarity(self.ratings[user_index], self.ratings[i], common_items, average_ratings[user_index], average_ratings[i])
+            #         similarities[user_index, i] = similarity
+            #         similarities[i, user_index] = similarity
+
+            return similarities
+        except Exception as err:
+            self.logger.error("Error in precompute_user_similarities: %s", str(err))
+            return None
     
     def predict_user_rating(self, user_index, item_index, similarities, average_ratings):
         """
@@ -362,73 +445,68 @@ class RecommenderSystem:
         - adjusted_neighbourhood_size (int): Adjusted size of the neighborhood used for prediction.
         """
         try:
-            with open('results/output.txt', 'a') as file:
-                # Get all neighbors who rated the item, adjust neighborhood size if necessary
-                neighbours = np.where(self.ratings[:, item_index] != self.MISSING_RATING)[0]
+            # Get all neighbors who rated the item, adjust neighborhood size if necessary
+            neighbours = np.where(self.ratings[:, item_index] != self.MISSING_RATING)[0]
+            self.min_neighbours_size = min(self.min_neighbours_size, len(neighbours))
+            self.max_neighbours_size = max(self.max_neighbours_size, len(neighbours))
+            #self.logger.info(f"Predicting for user {self.users[user_index]}, item {self.items[item_index]}")
+            
+            # Create array of tuples using neighbors indices and similarities
+            if self.include_negative_correlations:
+                filtered_indices = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[user_index])) if num != 0]
+            else:
+                filtered_indices = [(num, i, i in neighbours) for i, num in enumerate(similarities[user_index]) if num > 0]
                 
-                print(f"\nPredicting for user: {self.users[user_index]}", file=file)
-                print(f"Predicting for item: {self.items[item_index]}", file=file)
+            # Sort array based on similarities in descending order for neighborhood similarities
+            sorted_indices = np.array([index for _, index, is_in_array in sorted(filtered_indices, key=lambda x: x[0], reverse=True) if is_in_array])
                 
-                # Create array of tuples using neighbors indices and similarities
-                if self.include_negative_correlations:
-                    neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(abs(similarities[user_index]))]
-                else:
-                    neighborhood_similarities = [(num, i, i in neighbours) for i, num in enumerate(similarities[user_index]) if num > 0]
-                
-                # Sort array based on similarities in descending order for neighborhood similarities
-                sorted_indices = np.array([index for _, index, is_in_array in sorted(neighborhood_similarities, key=lambda x: (x[0], -x[1]), reverse=True) if is_in_array])
-                
-                # # Filtering technique
-                if self.filter_type == self.SIMILARITY_THRESHOLD:
-                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold]
-                    adjusted_neighbourhood_size = len(filtered_indices)
-                elif self.filter_type == self.TOP_K_NEIGHBOURS:
-                    adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighborhood_similarities))
-                    filtered_indices = sorted_indices[:adjusted_neighbourhood_size]
-                    adjusted_neighbourhood_size = len(filtered_indices)
-                else:
-                    adjusted_neighbourhood_size = min(self.neighbourhood_size, len(neighborhood_similarities))
-                    filtered_indices = sorted_indices[sorted_indices > self.similarity_threshold][:adjusted_neighbourhood_size]
-                    adjusted_neighbourhood_size = len(filtered_indices)
-                # print(f"{adjusted_neighbourhood_size}")
-                # adjusted_neighbourhood_size = len(filtered_indices)
+            if self.filter_type == self.SIMILARITY_THRESHOLD:
+                filtered_indices = [index for index in sorted_indices if similarities[user_index][index] > self.similarity_threshold]
+                adjusted_neighbourhood_size = len(filtered_indices)
+            elif self.filter_type == self.TOP_K_NEIGHBOURS:
+                adjusted_neighbourhood_size = min(self.neighbourhood_size, len(sorted_indices))
+                filtered_indices = sorted_indices[:adjusted_neighbourhood_size]
+                adjusted_neighbourhood_size = len(filtered_indices)
+            else:
+                adjusted_neighbourhood_size = min(self.neighbourhood_size, len(sorted_indices))
+                filtered_indices = [index for index in sorted_indices if similarities[user_index][index] > self.similarity_threshold][:adjusted_neighbourhood_size]
+                adjusted_neighbourhood_size = len(filtered_indices)
+            
+            self.min_filtered_neighbourhood_size = min(self.min_filtered_neighbourhood_size, adjusted_neighbourhood_size)
+            self.max_filtered_neighbourhood_size = max(self.max_filtered_neighbourhood_size, adjusted_neighbourhood_size)
 
-                # If no neighbors found, use the average rating for the user
-                if adjusted_neighbourhood_size == 0:
-                    print(f"Found no valid neighbours:", file=file)
-                    ratings_without_zeros = np.where(self.ratings[user_index] != 0, self.ratings[user_index], np.nan)
-                    predict_rating = np.nanmean(ratings_without_zeros)
-                    total_similarity = 0
-                else:
-                    print(f"Found {adjusted_neighbourhood_size} valid neighbours:", file=file)
-                    for i, idx in enumerate(filtered_indices):
-                        print(f"{i + 1}. User {self.users[idx]} sim={similarities[user_index, idx]}", file=file)
+            # If no neighbors found, use the average rating for the user
+            if adjusted_neighbourhood_size == 0:
+                #file.write("Found no valid neighbours:")
+                ratings_without_zeros = np.where(self.ratings[user_index] != 0, self.ratings[user_index], np.nan)
+                predict_rating = np.nanmean(ratings_without_zeros)
+                total_similarity = 0
+                #self.logger.info("Found no valid neighbours")
+            else:
+                numerator = 0
+                denominator = 0
 
-                    # Calculate the predicted rating using the given formula
-                    numerator = 0
-                    denominator = 0
-                    # print(filtered_indices)
-                    for idx in filtered_indices:
-                        similarity = similarities[user_index, idx]
-                        rating_diff = self.ratings[idx, item_index] - average_ratings[idx]
-                        numerator += similarity * rating_diff
-                        denominator += abs(similarity)
-                    # print(f"{numerator}/{denominator}")
-                    if abs(denominator) < self.close_to_zero_tolerance:
-                        # Handle the case where the denominator is zero to avoid division by zero
-                        predict_rating = average_ratings[user_index]
-                    else:
-                        predict_rating = average_ratings[user_index] + numerator / denominator
-
-                #     # Clip the final predicted value to be within the rating range
-                    predict_rating = max(0, min(predict_rating, 5))
+                for idx in filtered_indices:
+                    similarity = similarities[user_index, idx]
+                    rating_diff = self.ratings[idx, item_index] - average_ratings[idx]
+                    numerator += similarity * rating_diff
+                    denominator += abs(similarity)
                     
-                    total_similarity = np.sum(abs(similarities[user_index, filtered_indices]))
+                if abs(denominator) < self.close_to_zero_tolerance:
+                    #self.logger.info("Total similarity is close to zero: %f", denominator)
+                    # Handle the case where the denominator is zero to avoid division by zero
+                    predict_rating = average_ratings[user_index]
+                else:
+                    predict_rating = average_ratings[user_index] + numerator / denominator
+                    
+                # Clip the final predicted value to be within the rating range
+                predict_rating = max(self.MIN_RATING, min(predict_rating, self.MAX_RATING))
+                # self.logger.info("Predicted rating: %f", predict_rating)
+                total_similarity = np.sum(abs(similarities[user_index, filtered_indices]))
 
-                print(f"Final predicted value: {predict_rating:.2f}\n", file=file)
-                return predict_rating, total_similarity, adjusted_neighbourhood_size
+            return predict_rating, total_similarity, adjusted_neighbourhood_size
         except Exception as err:
-            print(f"Error in predict_user_rating: {str(err)}")
+            self.logger.error("Error in predict_user_rating: %s", str(err))
             return None, None, None
     
     def find_user_mae(self):
@@ -440,14 +518,8 @@ class RecommenderSystem:
         """
         
         try:
-            if os.path.exists("results/output.txt"):
-                # Delete the file
-                os.remove("results/output.txt")
-            start_time = time.time()
             test_set_size = 0
             numerator = 0
-            similarity_time = 0
-            prediction_time = 0
 
             under_predictions = 0
             over_predictions = 0
@@ -456,28 +528,36 @@ class RecommenderSystem:
 
             # calculate average ratings for all users, ignoring any missing ratings
             average_ratings = np.nanmean(np.where(self.ratings != self.MISSING_RATING, self.ratings, np.nan), axis=1)
-
+            
+            # Times
+            start_time = time.time()
+            avg_run_time = 0
+            sim_run_time = 0
+            pred_run_time = 0
+            
             for i in range(self.num_users):
                 for j in range(self.num_items):
                     if not np.isnan(self.ratings[i, j]) and not self.ratings[i, j] == self.MISSING_RATING:
                         test_set_size += 1
                         temp = self.ratings[i, j]
                         self.ratings[i, j] = self.MISSING_RATING
+                        
+                        avg_times = time.time()
                         average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
-
-                        similarity_start_time = time.time()
-                        similarities = self.precompute_user_similarities(i, average_ratings)
-                        similarity_time += time.time() - similarity_start_time
-
-                        # predict the rating for each user-item pair
-                        prediction_start_time = time.time()
+                        avg_run_time += time.time() - avg_times
+                        
+                        similarities_time = time.time()
+                        similarities = self.precompute_user_similarities(i, j, average_ratings)
+                        sim_run_time += time.time() - similarities_time
+                        
+                        predicted_times = time.time()
                         predicted_rating, total_similarity, adjusted_neighbourhood_size = self.predict_user_rating(i, j, similarities, average_ratings)
-                        prediction_time += time.time() - prediction_start_time
-
+                        pred_run_time += time.time() - predicted_times
+                        
                         if not np.isnan(predicted_rating):
                             error = abs(predicted_rating - temp)
                             numerator += error
-
+                            
                             if error < self.MIN_RATING:
                                 under_predictions += 1
                             elif error > self.MAX_RATING:
@@ -492,33 +572,26 @@ class RecommenderSystem:
                         average_ratings[i] = np.mean(self.ratings[i][self.ratings[i] != self.MISSING_RATING])
 
             mae = numerator / test_set_size
-            print(f"Total predictions: {test_set_size}")
-            print(f"Total under predictions (< {1}): {under_predictions}")
-            print(f"Total over predictions (> {5}): {over_predictions}")
-            print(f"Number of cases with no valid neighbours: {no_valid_neighbours}")
-            print(f"Average neighbours used: {total_neighbours_used / test_set_size}")
-            print(f"MAE: {mae}")
+            self.logger.info("Total predictions: %d", test_set_size)
+            self.logger.info("Total under predictions (< %d): %d", 1, under_predictions)
+            self.logger.info("Total over predictions (> %d): %d", 5, over_predictions)
+            self.logger.info("Number of cases with no valid neighbours: %d", no_valid_neighbours)
+            self.logger.info("Average neighbours used: %f", total_neighbours_used / test_set_size)
+            self.logger.info("MAE: %f", mae)
 
             elapsed_time = time.time() - start_time
             if elapsed_time >= 60:
                 minutes, seconds = divmod(elapsed_time, 60)
-                print(f"Elapsed time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
+                self.logger.info("Elapsed time: %d:%.3f (m:ss.mmm)", int(minutes), seconds)
             else:
-                print(f"Elapsed time: {elapsed_time:.3f}s")
-            if similarity_time >= 60:
-                minutes, seconds = divmod(similarity_time, 60)
-                print(f"similarity: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
-            else:
-                print(f"similarity: {elapsed_time:.3f}s")
-            if prediction_time >= 60:
-                minutes, seconds = divmod(prediction_time, 60)
-                print(f"prediction_time: {int(minutes)}:{seconds:.3f} (m:ss.mmm)")
-            else:
-                print(f"prediction_time: {elapsed_time:.3f}s")
+                self.logger.info("Elapsed time: %.3fs", elapsed_time)
+            self.logger.info("Time to do averages: %.3fs", avg_run_time)
+            self.logger.info("Time to do similarities: %.3fs", sim_run_time)
+            self.logger.info("Time to do predictions: %.3fs", pred_run_time)
 
             return mae
         except Exception as err:
-            print(f"Error: {str(err)}")
+            self.logger.error("Error in find_user_mae: %s", str(err))
             return None
         
     def run(self):
@@ -528,26 +601,39 @@ class RecommenderSystem:
         Returns:
         float: Result of the algorithm (e.g., MAE).
         '''
-        print("Running the recommender system...")
-        print(f"Algorithm: {'Item-Based' if self.algorithm == self.ITEM_BASED_ALGORITHM else 'User-Based'}")
-        print(f"Filter Type: {'Top-K Neighbours' if self.filter_type == self.TOP_K_NEIGHBOURS else 'Similarity Threshold'}")
-        print(f"Neighbourhood Size: {self.neighbourhood_size}")
-        print(f"Similarity Threshold: {self.similarity_threshold}")
-        print(f"Include Negative Correlations: {self.include_negative_correlations}")
+        try:
+            with open(self.output_file, "a") as results_file:
+                logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[logging.StreamHandler()])
+                if (self.filter_type == self.TOP_K_NEIGHBOURS):
+                    filter_type = "Top-K Neighbours"
+                elif (self.filter_type == self.SIMILARITY_THRESHOLD):
+                    filter_type = "Similarity Threshold"
+                else:
+                    filter_type = "Combined Top-K & Similarity Threshold"
+                
+                self.logger.info("File: %s", self.path)
+                self.logger.info("Algorithm: %s", 'Item-Based' if self.algorithm == self.ITEM_BASED_ALGORITHM else 'User-Based')
+                self.logger.info("Filter Type: %s", filter_type)
+                self.logger.info("Neighbourhood Size: %d", self.neighbourhood_size)
+                self.logger.info("Similarity Threshold: %f", self.similarity_threshold)
+                self.logger.info("Include Negative Correlations: %s", self.include_negative_correlations)
 
-        if self.algorithm == self.ITEM_BASED_ALGORITHM:
-            result = self.find_item_mae()
-        elif self.algorithm == self.USER_BASED_ALGORITHM:
-            result = self.find_user_mae()
-        else:
-            print("Invalid algorithm selected.")
-            result = None
-
-        print(f"Result: {result}")
-        
-        return result
-        #TODO:
-        # 1. investigate negative correlation as much as we can
-        # 2. add print outs for max neighbours and max array sizes (range)
-        # 4. implement saving results to file
-        # 5. start a run
+                if self.algorithm == self.ITEM_BASED_ALGORITHM:
+                    result = self.find_item_mae()
+                elif self.algorithm == self.USER_BASED_ALGORITHM:
+                    result = self.find_user_mae()
+                else:
+                    self.logger.error("Invalid algorithm selected.")
+                    result = None
+                self.logger.info("Minimum filtered neighbourhood size: %f", self.min_filtered_neighbourhood_size)
+                self.logger.info("Maximum filtered neighbourhood size: %f", self.max_filtered_neighbourhood_size)
+                self.logger.info("Minimum neighbours size: %f", self.min_neighbours_size)
+                self.logger.info("Maximum neighbours size: %f", self.max_neighbours_size)
+                self.logger.info("Result: %s\n\n", result)
+            
+            return result
+        except Exception as e:
+            self.logger.error("Error in recommender system: %s", e)
+            return None
+        finally:
+            self.close_logger()
