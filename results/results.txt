@@ -1,0 +1,457 @@
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 2
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 6110
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 16
+Average neighbours used: 1.995644
+MAE: 0.752030
+Elapsed time: 2:33.231 (m:ss.mmm)
+Time to do averages: 0.189s
+Time to do similarities: 146.728s
+Time to do predictions: 5.704s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 2.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.7520299956307884
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 2
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 6010
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 0
+Average neighbours used: 2.000000
+MAE: 0.764330
+Elapsed time: 2:7.014 (m:ss.mmm)
+Time to do averages: 0.212s
+Time to do similarities: 119.368s
+Time to do predictions: 6.862s
+Minimum filtered neighbourhood size: 2.000000
+Maximum filtered neighbourhood size: 2.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.7643297918000431
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 5
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 6848
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 16
+Average neighbours used: 4.902171
+MAE: 0.684128
+Elapsed time: 8.107s
+Time to do averages: 0.163s
+Time to do similarities: 2.682s
+Time to do predictions: 4.819s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 5.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6841280484448716
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 5
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 6738
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 0
+Average neighbours used: 4.997304
+MAE: 0.687628
+Elapsed time: 9.790s
+Time to do averages: 0.146s
+Time to do similarities: 2.687s
+Time to do predictions: 6.488s
+Minimum filtered neighbourhood size: 2.000000
+Maximum filtered neighbourhood size: 5.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6876276271816253
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 10
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 7017
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 16
+Average neighbours used: 8.552337
+MAE: 0.665939
+Elapsed time: 8.174s
+Time to do averages: 0.161s
+Time to do similarities: 2.675s
+Time to do predictions: 4.909s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 10.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6659391643634367
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 10
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 6964
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 0
+Average neighbours used: 9.044593
+MAE: 0.664219
+Elapsed time: 9.741s
+Time to do averages: 0.148s
+Time to do similarities: 2.684s
+Time to do predictions: 6.432s
+Minimum filtered neighbourhood size: 2.000000
+Maximum filtered neighbourhood size: 10.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6642191285474571
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 100
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 7062
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 16
+Average neighbours used: 15.348659
+MAE: 0.662966
+Elapsed time: 8.158s
+Time to do averages: 0.162s
+Time to do similarities: 2.603s
+Time to do predictions: 4.930s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 70.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6629657745264202
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 100
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 7055
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 0
+Average neighbours used: 19.462804
+MAE: 0.657231
+Elapsed time: 9.873s
+Time to do averages: 0.144s
+Time to do similarities: 2.672s
+Time to do predictions: 6.611s
+Minimum filtered neighbourhood size: 2.000000
+Maximum filtered neighbourhood size: 78.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6572311458070528
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 700
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 7062
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 16
+Average neighbours used: 15.348659
+MAE: 0.662966
+Elapsed time: 8.192s
+Time to do averages: 0.182s
+Time to do similarities: 2.650s
+Time to do predictions: 4.901s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 70.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6629657745264202
+
+
+File: input\assignment2-data.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 700
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 7055
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 0
+Average neighbours used: 19.462804
+MAE: 0.657231
+Elapsed time: 9.944s
+Time to do averages: 0.162s
+Time to do similarities: 2.657s
+Time to do predictions: 6.669s
+Minimum filtered neighbourhood size: 2.000000
+Maximum filtered neighbourhood size: 78.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6572311458070528
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 2
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 4593
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 1.999723
+MAE: 0.845913
+Start: 17:4.568 (m:ss.mmm)
+Time to do averages: 0.200s
+Time to do similarities: 997.264s
+Time to do predictions: 26.406s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 2.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.8459134647890122
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 2
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 4593
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 1.999723
+MAE: 0.845913
+Start: 22:50.190 (m:ss.mmm)
+Time to do averages: 0.192s
+Time to do similarities: 1339.912s
+Time to do predictions: 29.306s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 2.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.8459134647890122
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 5
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 5898
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 4.995022
+MAE: 0.757605
+Start: 17:1.901 (m:ss.mmm)
+Time to do averages: 0.178s
+Time to do similarities: 995.797s
+Time to do predictions: 25.277s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 5.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.7576051383126233
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 5
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 5898
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 4.995022
+MAE: 0.757605
+Start: 13:54.431 (m:ss.mmm)
+Time to do averages: 0.200s
+Time to do similarities: 808.862s
+Time to do predictions: 24.721s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 5.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.7576051383126233
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 10
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 6241
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 9.947041
+MAE: 0.722092
+Start: 14:35.431 (m:ss.mmm)
+Time to do averages: 0.215s
+Time to do similarities: 849.962s
+Time to do predictions: 24.622s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 10.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.7220918599798678
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 10
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 6241
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 9.947041
+MAE: 0.722092
+Start: 12:3.761 (m:ss.mmm)
+Time to do averages: 0.188s
+Time to do similarities: 698.000s
+Time to do predictions: 24.902s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 10.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.7220918599798678
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 100
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 6862
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 70.473590
+MAE: 0.667948
+Start: 11:47.589 (m:ss.mmm)
+Time to do averages: 0.186s
+Time to do similarities: 682.027s
+Time to do predictions: 24.758s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 100.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.6679476860462416
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 100
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 6862
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 70.473590
+MAE: 0.667948
+Start: 11:47.563 (m:ss.mmm)
+Time to do averages: 0.188s
+Time to do similarities: 681.907s
+Time to do predictions: 24.850s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 100.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.6679476860462416
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 700
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 6892
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 124.397400
+MAE: 0.663939
+Start: 11:47.465 (m:ss.mmm)
+Time to do averages: 0.201s
+Time to do similarities: 682.113s
+Time to do predictions: 24.507s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 467.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.6639390844591838
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 700
+Similarity Threshold: 0.000000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 6892
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1
+Average neighbours used: 124.397400
+MAE: 0.663939
+Start: 13:51.231 (m:ss.mmm)
+Time to do averages: 0.198s
+Time to do similarities: 802.878s
+Time to do predictions: 27.469s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 467.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.6639390844591838

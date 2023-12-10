@@ -1,0 +1,24 @@
+File: input\assignment2-data.txt
+Logger file: results\results_user_hybrid_ns100_sim0.5_negcorr_true.txt
+Algorithm: User-Based
+Filter Type: Combined Top-K & Similarity Threshold
+Neighbourhood Size: 100
+Similarity Threshold: 0.500000
+Include Negative Correlations: True
+Total predictions: 14464
+Total under predictions (< 1): 6339
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 4909
+Average neighbours used: 2.168902
+MAE: 0.735352
+Elapsed time: 3:31.980 (m:ss.mmm)
+Time to do averages: 24.593s
+Time to do similarities: 146.604s
+Time to do predictions: 17.840s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 40.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.7353516026101645
+
+

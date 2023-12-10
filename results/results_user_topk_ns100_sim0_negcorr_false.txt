@@ -1,0 +1,24 @@
+File: input\assignment2-data.txt
+Logger file: results\results_user_topk_ns100_sim0_negcorr_false.txt
+Algorithm: User-Based
+Filter Type: Top-K Neighbours
+Neighbourhood Size: 100
+Similarity Threshold: 0.000000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 7062
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 16
+Average neighbours used: 15.348659
+MAE: 0.662966
+Elapsed time: 3:0.696 (m:ss.mmm)
+Time to do averages: 18.105s
+Time to do similarities: 137.557s
+Time to do predictions: 5.710s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 70.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.6629657745264202
+
+

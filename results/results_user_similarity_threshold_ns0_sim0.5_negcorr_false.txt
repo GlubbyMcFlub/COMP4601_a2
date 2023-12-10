@@ -1,0 +1,24 @@
+File: input\assignment2-data.txt
+Logger file: results\results_user_similarity_threshold_ns0_sim0.5_negcorr_false.txt
+Algorithm: User-Based
+Filter Type: Similarity Threshold
+Neighbourhood Size: 0
+Similarity Threshold: 0.500000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 6339
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 4909
+Average neighbours used: 2.168902
+MAE: 0.735352
+Elapsed time: 3:11.851 (m:ss.mmm)
+Time to do averages: 22.411s
+Time to do similarities: 133.528s
+Time to do predictions: 15.076s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 40.000000
+Minimum neighbours size: 5.000000
+Maximum neighbours size: 78.000000
+Result: 0.7353516026101645
+
+

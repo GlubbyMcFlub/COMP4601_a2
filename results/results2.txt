@@ -1,0 +1,29 @@
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Similarity Threshold
+Neighbourhood Size: 2
+Similarity Threshold: 0.900000
+Include Negative Correlations: False
+Total predictions: 14464
+Total under predictions (< 1): 6116
+Total over predictions (> 5): 0
+Number of cases with no valid neighbours: 1630
+Average neighbours used: 29.128733
+MAE: 0.744674
+Start: 16:17.967 (m:ss.mmm)
+Time to do averages: 0.167s
+Time to do similarities: 951.545s
+Time to do predictions: 25.538s
+Minimum filtered neighbourhood size: 0.000000
+Maximum filtered neighbourhood size: 288.000000
+Minimum neighbours size: 6.000000
+Maximum neighbours size: 850.000000
+Result: 0.7446741418687478
+
+
+File: input\assignment2-data.txt
+Algorithm: Item-Based
+Filter Type: Similarity Threshold
+Neighbourhood Size: 2
+Similarity Threshold: 0.500000
+Include Negative Correlations: False
