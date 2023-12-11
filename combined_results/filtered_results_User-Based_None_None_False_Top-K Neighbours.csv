@@ -1,0 +1,6 @@
+Algorithm,Average neighbours used,Elapsed time,Filter Type,Include Negative Correlations,Maximum filtered neighbourhood size,Maximum neighbours size,Minimum filtered neighbourhood size,Minimum neighbours size,Neighbourhood Size,Number of cases with no valid neighbours,Result,Similarity Threshold,Time to do averages,Time to do predictions,Time to do similarities,Total over predictions (> 5),Total predictions,Total under predictions (< 1)
+User-Based,15.348659,180.696s,Top-K Neighbours,False,70.0,78.0,0.0,5.0,100,16,0.6629657745264202,0.0,18.105s,5.710s,137.557s,0,14464,7062
+User-Based,8.552337,178.670s,Top-K Neighbours,False,10.0,78.0,0.0,5.0,10,16,0.6659391643634367,0.0,18.135s,5.760s,135.920s,0,14464,7017
+User-Based,1.995644,204.720s,Top-K Neighbours,False,2.0,78.0,0.0,5.0,2,16,0.7520299956307884,0.0,24.661s,5.230s,151.974s,0,14464,6110
+User-Based,4.902171,219.890s,Top-K Neighbours,False,5.0,78.0,0.0,5.0,5,16,0.6841280484448716,0.0,25.691s,5.305s,164.092s,0,14464,6848
+User-Based,15.348659,181.622s,Top-K Neighbours,False,70.0,78.0,0.0,5.0,700,16,0.6629657745264202,0.0,18.332s,5.868s,138.139s,0,14464,7062

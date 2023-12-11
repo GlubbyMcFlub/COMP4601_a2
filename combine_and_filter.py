@@ -1,6 +1,7 @@
 import os
 import glob
 import pandas as pd
+import re
 
 def combine_and_filter_entries(folder_path, output_folder, algorithm=None, filter_type=None, neighbourhood_size=None, similarity_threshold=None, include_negative_correlations=None):
    # Check if the combined file already exists
@@ -42,10 +43,13 @@ def combine_and_filter_entries(folder_path, output_folder, algorithm=None, filte
                            'Maximum filtered neighbourhood size', 'Minimum neighbours size', 'Maximum neighbours size', 'Result']
 
       combined_df[numeric_columns] = combined_df[numeric_columns].apply(pd.to_numeric, errors='ignore')
-      
 
       # Save the combined DataFrame to a new file
       combined_df.to_csv(combined_file_path, index=False)
+
+   # Handle 'Start' and 'Elapsed time' columns
+   combined_df['Elapsed time'] = combined_df.apply(lambda row: convert_elapsed_time(row), axis=1)
+   combined_df.drop(columns=['Start'], inplace=True)
 
    # Filter the entries based on the specified parameters
    mask = True
@@ -76,8 +80,43 @@ def combine_and_filter_entries(folder_path, output_folder, algorithm=None, filte
 
    return filtered_df
 
+def convert_elapsed_time(row):
+   if pd.isnull(row['Start']):
+      # Convert 'Elapsed time' to seconds
+      minutes, seconds, milliseconds = map(int, re.findall(r'(\d+)', row['Elapsed time']))
+      return f"{minutes*60 + seconds + milliseconds/1000:.3f}s"
+   elif pd.isnull(row['Elapsed time']):
+      # If 'Elapsed time' is NaN, convert 'Start' to seconds
+      minutes, seconds, milliseconds = map(int, re.findall(r'(\d+)', row['Start']))
+      return f"{minutes*60 + seconds + milliseconds/1000:.3f}s"
+   else:
+      # Keep 'Elapsed time' as is
+      return row['Elapsed time']
+
+def run_multiple_combinations(folder_path, output_folder):
+   algorithms = ['Item-Based', 'User-Based']
+   filter_types = ['Top-K Neighbours', 'Similarity Threshold', 'Combined Top-K & Similarity Threshold']
+   neighbourhood_sizes = [None]
+   similarity_thresholds = [None]
+   include_negative_correlations = [True, False]
+
+   for algorithm in algorithms:
+      for filter_type in filter_types:
+         for neighbourhood_size in neighbourhood_sizes:
+               for similarity_threshold in similarity_thresholds:
+                  for inc_neg_corr in include_negative_correlations:
+                     print(f"Running combination: {algorithm}, {filter_type}, {neighbourhood_size}, {similarity_threshold}, {inc_neg_corr}")
+                     combine_and_filter_entries(
+                           folder_path,
+                           output_folder,
+                           algorithm=algorithm,
+                           filter_type=filter_type,
+                           neighbourhood_size=neighbourhood_size,
+                           similarity_threshold=similarity_threshold,
+                           include_negative_correlations=inc_neg_corr
+                     )
+
 # Example usage
 folder_path = 'results'
 output_folder = 'combined_results'
-filtered_data = combine_and_filter_entries(folder_path, output_folder, algorithm='User-Based', filter_type="Top-K Neighbours",neighbourhood_size=None, similarity_threshold=0.000000, include_negative_correlations=False)
-print(f"Filtered: {filtered_data}")
+run_multiple_combinations(folder_path, output_folder)

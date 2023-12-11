@@ -1,0 +1,4 @@
+Algorithm,Average neighbours used,Elapsed time,Filter Type,Include Negative Correlations,Maximum filtered neighbourhood size,Maximum neighbours size,Minimum filtered neighbourhood size,Minimum neighbours size,Neighbourhood Size,Number of cases with no valid neighbours,Result,Similarity Threshold,Time to do averages,Time to do predictions,Time to do similarities,Total over predictions (> 5),Total predictions,Total under predictions (< 1)
+User-Based,13.106886,188.103s,Similarity Threshold,False,65.0,78.0,0.0,5.0,0,30,0.6635373563856487,0.1,23.222s,5.522s,137.822s,0,14464,7055
+User-Based,2.168902,191.851s,Similarity Threshold,False,40.0,78.0,0.0,5.0,0,4909,0.7353516026101645,0.5,22.411s,15.076s,133.528s,0,14464,6339
+User-Based,0.273714,208.109s,Similarity Threshold,False,15.0,78.0,0.0,5.0,0,12407,0.7359066391417819,0.9,22.757s,29.823s,134.406s,0,14464,6198

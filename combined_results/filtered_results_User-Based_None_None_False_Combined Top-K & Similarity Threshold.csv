@@ -1,0 +1,16 @@
+Algorithm,Average neighbours used,Elapsed time,Filter Type,Include Negative Correlations,Maximum filtered neighbourhood size,Maximum neighbours size,Minimum filtered neighbourhood size,Minimum neighbours size,Neighbourhood Size,Number of cases with no valid neighbours,Result,Similarity Threshold,Time to do averages,Time to do predictions,Time to do similarities,Total over predictions (> 5),Total predictions,Total under predictions (< 1)
+User-Based,13.106886,187.115s,Combined Top-K & Similarity Threshold,False,65.0,78.0,0.0,5.0,100,30,0.6635373563856487,0.1,22.744s,5.340s,137.959s,0,14464,7055
+User-Based,2.168902,204.015s,Combined Top-K & Similarity Threshold,False,40.0,78.0,0.0,5.0,100,4909,0.7353516026101645,0.5,23.425s,16.122s,142.164s,0,14464,6339
+User-Based,0.273714,221.445s,Combined Top-K & Similarity Threshold,False,15.0,78.0,0.0,5.0,100,12407,0.7359066391417819,0.9,24.200s,32.611s,142.551s,0,14464,6198
+User-Based,8.04888,184.228s,Combined Top-K & Similarity Threshold,False,10.0,78.0,0.0,5.0,10,30,0.6664883665175095,0.1,22.139s,5.461s,135.511s,0,14464,7015
+User-Based,1.970962,201.903s,Combined Top-K & Similarity Threshold,False,10.0,78.0,0.0,5.0,10,4909,0.7359510616341596,0.5,23.665s,16.039s,140.079s,0,14464,6341
+User-Based,0.271847,217.122s,Combined Top-K & Similarity Threshold,False,10.0,78.0,0.0,5.0,10,12407,0.7359292093751821,0.9,23.281s,31.166s,140.579s,0,14464,6198
+User-Based,1.988039,179.775s,Combined Top-K & Similarity Threshold,False,2.0,78.0,0.0,5.0,2,30,0.7517646349719175,0.1,21.672s,5.384s,132.148s,0,14464,6109
+User-Based,1.066994,201.130s,Combined Top-K & Similarity Threshold,False,2.0,78.0,0.0,5.0,2,4909,0.7583588467670085,0.5,23.565s,15.693s,139.773s,0,14464,6102
+User-Based,0.196557,213.951s,Combined Top-K & Similarity Threshold,False,2.0,78.0,0.0,5.0,2,12407,0.7387620490868001,0.9,23.162s,30.246s,138.558s,0,14464,6173
+User-Based,4.780006,192.572s,Combined Top-K & Similarity Threshold,False,5.0,78.0,0.0,5.0,5,30,0.6843633188807501,0.1,23.656s,5.316s,141.251s,0,14464,6845
+User-Based,1.650166,199.481s,Combined Top-K & Similarity Threshold,False,5.0,78.0,0.0,5.0,5,4909,0.739354276713318,0.5,23.259s,15.610s,138.840s,0,14464,6298
+User-Based,0.253803,208.225s,Combined Top-K & Similarity Threshold,False,5.0,78.0,0.0,5.0,5,12407,0.7362159540576639,0.9,22.729s,30.487s,133.268s,0,14464,6193
+User-Based,13.106886,196.535s,Combined Top-K & Similarity Threshold,False,65.0,78.0,0.0,5.0,700,30,0.6635373563856487,0.1,23.950s,5.686s,144.770s,0,14464,7055
+User-Based,2.168902,220.025s,Combined Top-K & Similarity Threshold,False,40.0,78.0,0.0,5.0,700,4909,0.7353516026101645,0.5,25.147s,16.518s,154.303s,0,14464,6339
+User-Based,0.273714,243.403s,Combined Top-K & Similarity Threshold,False,15.0,78.0,0.0,5.0,700,12407,0.7359066391417819,0.9,26.229s,35.487s,158.067s,0,14464,6198
