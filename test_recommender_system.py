@@ -1,115 +1,81 @@
-import unittest
 import os
-import concurrent.futures
-from recommender_system import RecommenderSystem
+import glob
+import pandas as pd
 
-class TestRecommenderSystem(unittest.TestCase):
-    '''
-    Test suite for RecommenderSystem class
-    
-    This test suite is designed to test the RecommenderSystem class permutations to easily find the best parameters for the algorithms
-    '''
+def combine_and_filter_entries(folder_path, output_folder, algorithm=None, neighbourhood_size=None, similarity_threshold=None, include_negative_correlations=None):
+    # Check if the combined file already exists
+    combined_file_name = 'combined_results.csv'
+    combined_file_path = os.path.join(output_folder, combined_file_name)
 
-    def setUp(self):
-        '''
-        Set up the test suite directories and files
-        '''
-        self.input_directory = "input"
-        self.output_directory = "results"
-        self.files = [f for f in os.listdir(self.input_directory) if os.path.isfile(os.path.join(self.input_directory, f))]
-    
-    def generate_results_file_name(self, algorithm, neighbourhood_size, similarity_threshold, include_negative_correlations, filter_type):
-        '''
-        Generate a dynamic results file name based on permutations
-        '''
+    if os.path.exists(combined_file_path):
+        # If the combined file exists, read it directly
+        combined_df = pd.read_csv(combined_file_path)
+    else:
+        # If the combined file doesn't exist, combine data from multiple files into a single DataFrame
+        combined_data = []
 
-        algorithm_str = "item" if algorithm == RecommenderSystem.ITEM_BASED_ALGORITHM else "user"
-        filter_type_str = ""
+        file_paths = glob.glob(os.path.join(folder_path, '*.txt'))
+
+        for file_path in file_paths:
+            # Skip files that contain "Logger file" in their names
+            if 'Logger file' in file_path:
+                continue
+
+            with open(file_path, 'r') as file:
+                lines = file.read().split('\n\n')
+
+            data = []
+            for entry in lines:
+                if entry.strip():  # Skip empty entries
+                    lines = entry.strip().split('\n')
+                    entry_dict = dict([line.split(': ') for line in lines])
+                    data.append(entry_dict)
+
+            combined_data.extend(data)
+
+        combined_df = pd.DataFrame(combined_data)
+
+        # Convert relevant columns to numeric type
+        numeric_columns = ['Neighbourhood Size', 'Similarity Threshold', 'Include Negative Correlations', 'Total predictions', 'Total under predictions (< 1)',
+                            'Total over predictions (> 5)', 'Number of cases with no valid neighbours', 'Average neighbours used', 'Elapsed time',
+                            'Time to do averages', 'Time to do similarities', 'Time to do predictions', 'Minimum filtered neighbourhood size',
+                            'Maximum filtered neighbourhood size', 'Minimum neighbours size', 'Maximum neighbours size', 'Result']
+
+        combined_df[numeric_columns] = combined_df[numeric_columns].apply(pd.to_numeric, errors='ignore')
         
-        if filter_type == RecommenderSystem.TOP_K_NEIGHBOURS:
-            filter_type_str = "topk"
-        elif filter_type == RecommenderSystem.SIMILARITY_THRESHOLD:
-            filter_type_str = "similarity_threshold"
-        else:
-            filter_type_str = "hybrid"
 
-        file_name = f"results_{algorithm_str}_{filter_type_str}_ns{neighbourhood_size}_sim{similarity_threshold}_{'negcorr_true' if include_negative_correlations else 'negcorr_false'}.txt"
-        return os.path.join(self.output_directory, file_name)
+        # Save the combined DataFrame to a new file
+        combined_df.to_csv(combined_file_path, index=False)
+    print(f"Original: {combined_df}")
 
-    def run_test_for_file(self, file_path, algorithm, neighbourhood_size, similarity_threshold, include_negative_correlations, filter_type, results_file_path):
-        '''
-        Run a test for a given file and permutation
-        Returns the result (MAE) of the test
-        '''
+    # Filter the entries based on the specified parameters
+    mask = True
 
-        recommender_system = RecommenderSystem(
-            file_path, algorithm, output_file=results_file_path,
-            neighbourhood_size=neighbourhood_size, similarity_threshold=similarity_threshold,
-            include_negative_correlations=include_negative_correlations, filter_type=filter_type
-        )
+    if algorithm:
+        mask &= (combined_df['Algorithm'] == algorithm)
 
-        result = recommender_system.run()
+    if neighbourhood_size is not None:
+        mask &= (combined_df['Neighbourhood Size'] == neighbourhood_size)
 
-        return result
+    if similarity_threshold is not None:
+        mask &= (combined_df['Similarity Threshold'] == similarity_threshold)
 
-    def test_all_files(self):
-        '''
-        Run tests for all files in input directory (currently hardcoded to run only for the first file -> assignment2 data)
-        '''
-        # Permutation parameters
-        algorithms = [RecommenderSystem.USER_BASED_ALGORITHM, RecommenderSystem.ITEM_BASED_ALGORITHM]
-        filter_types = [RecommenderSystem.SIMILARITY_THRESHOLD, 3, RecommenderSystem.TOP_K_NEIGHBOURS]
-        neighbourhood_sizes = [2, 5, 10, 100, 700]
-        similarity_thresholds = [0.9, 0.5, 0.1]
-        include_negative_correlations_values = [False, True]
-        
-        # Data file
-        file = self.files[0]
-        file_path = os.path.join(self.input_directory, file)
+    if include_negative_correlations is not None:
+        mask &= (combined_df['Include Negative Correlations'] == include_negative_correlations)
 
-        # Multithreaded execution
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = []
+    # Ignore specific columns like 'File', 'Logger file', 'MAE'
+    ignore_columns = ['File', 'Logger file', 'MAE']
+    filtered_df = combined_df.loc[mask, combined_df.columns.difference(ignore_columns)]
 
-            # Run tests for all permutations
-            for algorithm in algorithms:
-                for filter_type in filter_types:
-                    if filter_type != RecommenderSystem.SIMILARITY_THRESHOLD:
-                        # Use neighbourhood size only for top-k and hybrid filter_type
-                        for neighbourhood_size in neighbourhood_sizes:
-                            for include_negative_correlations in include_negative_correlations_values:
-                                if filter_type != RecommenderSystem.TOP_K_NEIGHBOURS:
-                                    # Use similarity threshold only for hybrid filter_type
-                                    for similarity_threshold in similarity_thresholds:
-                                        results_file_path = self.generate_results_file_name(
-                                            algorithm, neighbourhood_size, similarity_threshold,
-                                            include_negative_correlations, filter_type
-                                        )
-                                        future = executor.submit(self.run_test_for_file, file_path, algorithm, neighbourhood_size, similarity_threshold, include_negative_correlations, filter_type, results_file_path)
-                                        futures.append(future)
-                                else:
-                                    # Ignore similarity threshold if top-k filter_type
-                                    similarity_threshold = 0
-                                    results_file_path = self.generate_results_file_name(
-                                        algorithm, neighbourhood_size, similarity_threshold,
-                                        include_negative_correlations, filter_type
-                                    )
-                                    future = executor.submit(self.run_test_for_file, file_path, algorithm, neighbourhood_size, similarity_threshold, include_negative_correlations, filter_type, results_file_path)
-                                    futures.append(future)
-                    else:
-                        # Ignore neighbourhood size if similarity threshold
-                        for include_negative_correlations in include_negative_correlations_values:
-                            for similarity_threshold in similarity_thresholds:
-                                neighbourhood_size = 0
-                                results_file_path = self.generate_results_file_name(
-                                    algorithm, neighbourhood_size, similarity_threshold,
-                                    include_negative_correlations, filter_type
-                                )
-                                future = executor.submit(self.run_test_for_file, file_path, algorithm, neighbourhood_size, similarity_threshold, include_negative_correlations, filter_type, results_file_path)
-                                futures.append(future)
+    # Save the filtered DataFrame to a new file
+    filtered_file_name = f'filtered_results_{algorithm}_{neighbourhood_size}_{similarity_threshold}_{include_negative_correlations}.csv'
+    filtered_file_path = os.path.join(output_folder, filtered_file_name)
+    filtered_df.to_csv(filtered_file_path, index=False)
 
-            # Wait for all threads to complete
-            concurrent.futures.wait(futures)
+    return filtered_df
 
-if __name__ == '__main__':
-    unittest.main()
+# Example usage
+folder_path = 'results'
+output_folder = 'combined_results'
+filtered_data = combine_and_filter_entries(folder_path, output_folder, algorithm='User-Based', neighbourhood_size=2, similarity_threshold=0.000000, include_negative_correlations=False)
+print(f"Filtered: {filtered_data}")
